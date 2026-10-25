@@ -1,0 +1,25 @@
+<resources>
+    <string name="open_local_title">Dispositivo</string>
+    <string name="open_local_search">Buscar archivos KDBX…</string>
+    <string name="open_local_empty">No se encontraron archivos KDBX en esta ubicación.</string>
+    <string name="open_local_unavailable">No se puede leer esta ubicación. Comprueba el permiso de acceso completo.</string>
+    <string name="open_title">Abrir vault</string>
+    <string name="open_intro">Selecciona dónde está tu archivo KDBX</string>
+    <string name="open_description">Selecciona un vault del dispositivo. Puedes cambiar el modo de acceso en Ajustes.</string>
+    <string name="open_device_saf_description">Abrir un archivo .kdbx con el selector de Android.</string>
+    <string name="open_device_full_description">Explorar carpetas del almacenamiento compartido.</string>
+    <string name="open_no_recent">Sin vaults recientes</string>
+    <string name="open_no_recent_description">Los archivos seleccionados aparecerán aquí.</string>
+    <string name="open_recent_local">Dispositivo · Seleccionado recientemente</string>
+    <string name="open_recent_document">Documento · Selector de Android</string>
+    <string name="open_last_opened">Última apertura: %1$s</string>
+    <string name="open_never_opened">Aún no se ha abierto</string>
+    <string name="open_current">Vault actual</string>
+    <string name="open_recent_actions">Opciones de %1$s</string>
+    <string name="open_locate_again">Localizar de nuevo</string>
+    <string name="open_remove_recent">Quitar de recientes</string>
+    <string name="open_remove_title">¿Quitar de recientes?</string>
+    <string name="open_remove_message">%1$s se quitará del historial de Vaultk. El archivo no se borrará.</string>
+    <string name="open_unavailable_title">Vault no disponible</string>
+    <string name="open_unavailable_message">No se puede acceder a %1$s como archivo local. Vuelve a seleccionarlo desde Dispositivo; los enlaces SAF anteriores ya no se admiten.</string>
+</resources>

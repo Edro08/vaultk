@@ -1,0 +1,14 @@
+<resources>
+    <string name="common_back">Volver</string>
+    <string name="common_close">Cerrar</string>
+    <string name="common_select_vault">Seleccionar vault</string>
+    <string name="common_device">Dispositivo</string>
+    <string name="common_onedrive">OneDrive</string>
+    <string name="common_recent">Recientes</string>
+    <string name="common_vault_tab">Vault</string>
+    <string name="common_generator_tab">Generador</string>
+    <string name="common_settings_tab">Ajustes</string>
+    <string name="common_password">Contraseña</string>
+    <string name="common_show_password">Mostrar contraseña</string>
+    <string name="common_hide_password">Ocultar contraseña</string>
+</resources>

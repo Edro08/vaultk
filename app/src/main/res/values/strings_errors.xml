@@ -1,0 +1,15 @@
+<resources>
+    <string name="open_error_unreadable">No se pudo leer el archivo seleccionado.</string>
+    <string name="open_error_extension">Selecciona un archivo con extensión .kdbx.</string>
+    <string name="open_error_read_permission">No se concedió acceso de lectura al archivo.</string>
+    <string name="open_error_persist_permission">No se pudo conservar el acceso al archivo.</string>
+    <string name="open_error_recent_unavailable">No se puede acceder al vault. Selecciónalo nuevamente desde Dispositivo.</string>
+    <string name="unlock_error_key">Llave maestra incorrecta.</string>
+    <string name="unlock_error_file">El archivo KDBX está dañado o no es compatible.</string>
+    <string name="unlock_error_access">No se pudo leer el archivo. Comprueba que siga disponible.</string>
+    <string name="detail_invalid_url">Solo se pueden abrir enlaces HTTP o HTTPS válidos.</string>
+    <string name="detail_no_browser">No hay una aplicación disponible para abrir el enlace.</string>
+    <string name="form_attachment_open_error">No se pudo abrir el archivo adjunto.</string>
+    <string name="save_error_write">No se pudo guardar el vault de forma segura. Los cambios siguen en esta sesión; comprueba el archivo y reintenta.</string>
+    <string name="save_error_conflict">Otra aplicación modificó el vault. No se sobrescribió. Guarda tus cambios después de resolver el conflicto.</string>
+</resources>
