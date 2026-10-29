@@ -33,15 +33,16 @@ import com.edro08.vaultk.domain.FileAccessMode
 import com.edro08.vaultk.domain.VaultContent
 import com.edro08.vaultk.domain.VaultEntry
 import com.edro08.vaultk.domain.VaultGroup
-import com.edro08.vaultk.ui.screen.VaultContentScreen
-import com.edro08.vaultk.ui.screen.UnlockVaultScreen
-import com.edro08.vaultk.ui.screen.SelectedVault
-import com.edro08.vaultk.ui.screen.SettingsScreen
+import com.edro08.vaultk.ui.screen.vault.VaultContentScreen
+import com.edro08.vaultk.ui.screen.storage.UnlockVaultScreen
+import com.edro08.vaultk.ui.screen.storage.SelectedVault
+import com.edro08.vaultk.ui.screen.settings.SettingsScreen
 import com.edro08.vaultk.ui.theme.VaultkTheme
 import org.junit.Rule
 import org.junit.Test
 import com.edro08.vaultk.data.KdbxVaultValueFactory
 import com.edro08.vaultk.application.EditVault
+import com.edro08.vaultk.ui.screen.settings.LockTimeoutDialog
 import java.time.Instant
 
 class VaultHomeTest {
@@ -59,7 +60,6 @@ class VaultHomeTest {
                 clipboardSeconds = 30, onClipboardChange = {},
                 searchNotes = true, onSearchNotesChange = {},
                 showDetails = true, onShowDetailsChange = {},
-                fileAccessMode = access, onFileAccessChange = { access = it },
                 onManageFileAccess = { managed = true })
         } }
         compose.onNodeWithTag("theme-Oscuro").assertIsSelected()
@@ -257,7 +257,8 @@ class VaultHomeTest {
                 onBiometricClick = null, timeoutSeconds = timeout, onTimeoutClick = { dialog = true },
                 clipboardSeconds = 30, onClipboardChange = {}, searchNotes = true,
                 onSearchNotesChange = {}, showDetails = true, onShowDetailsChange = {})
-            if (dialog) com.edro08.vaultk.ui.screen.LockTimeoutDialog(timeout,
+            if (dialog) LockTimeoutDialog(
+                timeout,
                 { timeout = it }, { dialog = false })
         } }
         compose.onNodeWithText("Se bloquea tras 5 minutos de inactividad.").assertIsDisplayed()
@@ -353,7 +354,8 @@ class VaultHomeTest {
         compose.setContent { VaultkTheme { VaultContentScreen(content, "Personal.kdbx", {}, editVault = editor) } }
 
         compose.onNodeWithContentDescription("Seleccionar grupo").performClick()
-        compose.onNodeWithTag("group-select-other").performClick()
+        compose.onNodeWithTag("group-enter-other").performClick()
+        compose.onNodeWithTag("group-use-current").performClick()
         compose.onNodeWithText("Correo").assertDoesNotExist()
         compose.onNodeWithText("Buscar en el vault…").performTextInput("EUROPA")
         compose.onNodeWithText("Correo").assertIsDisplayed().performClick()
@@ -378,7 +380,8 @@ class VaultHomeTest {
         compose.onNodeWithText("Mega").assertDoesNotExist()
         compose.onNodeWithContentDescription("Seleccionar grupo").performClick()
         compose.onNodeWithTag("group-enter-work").performClick()
-        compose.onNodeWithTag("group-select-services").performClick()
+        compose.onNodeWithTag("group-enter-services").performClick()
+        compose.onNodeWithTag("group-use-current").performClick()
         compose.onNodeWithText("Mega").assertIsDisplayed().performClick()
         compose.onNodeWithText("Una nota").assertIsDisplayed()
         compose.onNodeWithContentDescription("Volver").performClick()
@@ -455,7 +458,7 @@ class VaultHomeTest {
         compose.onNodeWithContentDescription("Seleccionar grupo").performClick()
         compose.onNodeWithText("Nuevo grupo").performClick()
         compose.onNodeWithText("Nombre del grupo").performTextInput("Temporal")
-        compose.onNodeWithText("Crear").performClick()
+        compose.onNodeWithText("Crear grupo").performClick()
         compose.onNodeWithText("Hay grupos nuevos sin guardar. Guarda una copia KDBX para conservarlos.").assertIsDisplayed()
         compose.onNodeWithContentDescription("Más opciones").performClick()
         compose.onNodeWithText("Cerrar vault").performClick()
@@ -519,7 +522,8 @@ class VaultHomeTest {
         compose.setContent { VaultkTheme { VaultContentScreen(content, "Personal.kdbx", { closed = true }, editVault = editor) } }
 
         compose.onNodeWithContentDescription("Seleccionar grupo").performClick()
-        compose.onNodeWithTag("group-select-services").performClick()
+        compose.onNodeWithTag("group-enter-services").performClick()
+        compose.onNodeWithTag("group-use-current").performClick()
         compose.onNodeWithContentDescription("Nueva entrada").performClick()
         compose.onNodeWithText("Nueva entrada").assertIsDisplayed()
         compose.onNodeWithText("Servicios").assertIsDisplayed()
@@ -612,7 +616,8 @@ class VaultHomeTest {
             }, editVault = editor) } }
 
         compose.onNodeWithContentDescription("Seleccionar grupo").performClick()
-        compose.onNodeWithTag("group-select-from").performClick()
+        compose.onNodeWithTag("group-enter-from").performClick()
+        compose.onNodeWithTag("group-use-current").performClick()
         compose.onNodeWithText("Mega").performClick()
         compose.onNodeWithContentDescription("Más opciones").performClick()
         compose.onNodeWithText("Duplicar").performClick()
@@ -625,7 +630,8 @@ class VaultHomeTest {
 
         compose.onNodeWithContentDescription("Seleccionar grupo").performClick()
         compose.onNodeWithText("Buscar grupo").performTextInput("Origen")
-        compose.onNodeWithTag("group-select-from").performClick()
+        compose.onNodeWithTag("group-enter-from").performClick()
+        compose.onNodeWithTag("group-use-current").performClick()
         compose.onNodeWithText("Mega").performClick()
         compose.onNodeWithContentDescription("Más opciones").performClick()
         compose.onNodeWithText("Eliminar entrada").performClick()

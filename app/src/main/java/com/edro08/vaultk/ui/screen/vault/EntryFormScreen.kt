@@ -1,4 +1,4 @@
-package com.edro08.vaultk.ui.screen
+package com.edro08.vaultk.ui.screen.vault
 
 import android.app.DatePickerDialog
 import android.content.ActivityNotFoundException
@@ -9,8 +9,10 @@ import android.provider.OpenableColumns
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -89,7 +91,6 @@ import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import kotlinx.coroutines.launch
-import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -98,8 +99,10 @@ import java.util.UUID
 import java.util.Locale
 import com.edro08.vaultk.application.EntryFormData
 import com.edro08.vaultk.application.CustomFieldDraft
+import com.edro08.vaultk.domain.VaultValue
+import com.edro08.vaultk.ui.screen.generator.PasswordGeneratorScreen
 
-private fun com.edro08.vaultk.domain.VaultValue.asFormText(): String {
+private fun VaultValue.asFormText(): String {
     val chars = valueAsChars
     return try { String(chars) } finally { chars.fill('\u0000') }
 }
@@ -227,7 +230,7 @@ fun EntryFormScreen(groupName: String, onSave: (EntryFormData) -> Unit, onBack: 
                     }, enabled = title.isNotBlank() && otpValid && (!expires || expiryDate != null)) {
                         Icon(Icons.Default.Check, stringResource(R.string.form_save))
                     }
-                    androidx.compose.foundation.layout.Box {
+                    Box {
                         IconButton(onClick = { menuOpen = true }) {
                             Icon(Icons.Default.MoreVert, stringResource(R.string.content_more))
                         }
@@ -277,7 +280,8 @@ fun EntryFormScreen(groupName: String, onSave: (EntryFormData) -> Unit, onBack: 
                     horizontalArrangement = Arrangement.spacedBy(VaultkSpacing.small)) {
                     OutlinedButton(onClick = { showGenerator = true }, modifier = Modifier.heightIn(min = 48.dp),
                         shape = MaterialTheme.shapes.small,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary)) {
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+                    ) {
                         Icon(Icons.Default.Casino, null)
                         Text(stringResource(R.string.generator_generate), Modifier.padding(start = VaultkSpacing.small))
                     }
@@ -428,7 +432,7 @@ fun EntryFormScreen(groupName: String, onSave: (EntryFormData) -> Unit, onBack: 
                             overflow = TextOverflow.Ellipsis)
                         TextButton(enabled = attachment.uri != null, onClick = {
                             try {
-                                context.startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(android.net.Uri.parse(attachment.uri), attachment.mimeType)
+                                context.startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(Uri.parse(attachment.uri), attachment.mimeType)
                                     .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
                             } catch (_: ActivityNotFoundException) { scope.launch { snackbar.showSnackbar(attachmentError) } }
                             catch (_: SecurityException) { scope.launch { snackbar.showSnackbar(attachmentError) } }
@@ -539,7 +543,7 @@ private fun FormInput(icon: ImageVector, field: @Composable (Modifier) -> Unit) 
 
 @Composable
 private fun FormSection(title: String, subtitle: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector, initiallyExpanded: Boolean,
+    icon: ImageVector, initiallyExpanded: Boolean,
     content: @Composable () -> Unit) {
     var expanded by remember(title, initiallyExpanded) { mutableStateOf(initiallyExpanded) }
     VaultkCard {

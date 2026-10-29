@@ -4,8 +4,8 @@ import android.os.Bundle
 import android.os.SystemClock
 import android.content.Intent
 import android.content.ActivityNotFoundException
+import android.net.ConnectivityManager
 import android.net.Uri
-import android.os.Environment
 import android.provider.Settings
 import android.view.WindowManager
 import android.widget.Toast
@@ -30,6 +30,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import android.graphics.Color
 import com.edro08.vaultk.domain.VaultDocument
+import com.edro08.vaultk.domain.CloudCopy
+import com.edro08.vaultk.domain.biometricReference
 import com.edro08.vaultk.ui.uri
 import com.edro08.vaultk.app.VaultkGraph
 import com.edro08.vaultk.ui.LocalCopyCredential
@@ -40,15 +42,21 @@ import com.edro08.vaultk.domain.FileAccessMode
 import com.edro08.vaultk.domain.VaultConflictException
 import com.edro08.vaultk.domain.InvalidVaultFileException
 import com.edro08.vaultk.domain.InvalidVaultKeyException
+import com.edro08.vaultk.ui.component.VaultkDestination
+import com.edro08.vaultk.ui.screen.generator.PasswordGeneratorScreen
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import com.edro08.vaultk.domain.VaultContent
 import com.edro08.vaultk.domain.VaultId
-import com.edro08.vaultk.ui.screen.OpenVaultScreen
-import com.edro08.vaultk.ui.screen.LocalVaultPickerScreen
-import com.edro08.vaultk.ui.screen.LockTimeoutDialog
-import com.edro08.vaultk.ui.screen.SelectedVault
-import com.edro08.vaultk.ui.screen.SettingsScreen
-import com.edro08.vaultk.ui.screen.UnlockVaultScreen
-import com.edro08.vaultk.ui.screen.VaultContentScreen
+import com.edro08.vaultk.ui.screen.storage.OpenVaultScreen
+import com.edro08.vaultk.ui.screen.storage.OneDriveScreen
+import com.edro08.vaultk.ui.screen.storage.CloudCopiesScreen
+import com.edro08.vaultk.ui.screen.storage.LocalVaultPickerScreen
+import com.edro08.vaultk.ui.screen.settings.LockTimeoutDialog
+import com.edro08.vaultk.ui.screen.storage.SelectedVault
+import com.edro08.vaultk.ui.screen.settings.SettingsScreen
+import com.edro08.vaultk.ui.screen.storage.UnlockVaultScreen
+import com.edro08.vaultk.ui.screen.vault.VaultContentScreen
 import com.edro08.vaultk.ui.theme.VaultkTheme
 import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -99,14 +107,22 @@ class MainActivity : FragmentActivity() {
             var appearance by remember { mutableStateOf(settings.appearance) }
             var searchNotes by remember { mutableStateOf(settings.searchNotes) }
             var showDetails by remember { mutableStateOf(settings.showDetails) }
+            var cloudAutoSync by remember { mutableStateOf(settings.cloudAutoSync) }
+            var cloudAllowMetered by remember { mutableStateOf(settings.cloudAllowMetered) }
+            val isMeteredNetwork: () -> Boolean = {
+                getSystemService(ConnectivityManager::class.java)?.isActiveNetworkMetered == true
+            }
+            var selectorDestination by rememberSaveable { mutableStateOf(VaultkDestination.Vault) }
             val biometricKeys = graph.biometricUnlock
             val openLocalVault = graph.openLocalVault
             val saveLocalVault = graph.saveLocalVault
             val scope = rememberCoroutineScope()
             var selected by remember { mutableStateOf(store.current()) }
+            var cloudSelected by remember { mutableStateOf(graph.cloudCopies.selected()) }
             var recent by remember { mutableStateOf(store.recent()) }
-            var biometricEnabled by remember(selected?.uri) {
-                mutableStateOf(selected?.let { biometricKeys.enabled(it.uri.toString()) } == true)
+            val activeReference = cloudSelected?.id?.biometricReference() ?: selected?.uri?.toString()
+            var biometricEnabled by remember(activeReference) {
+                mutableStateOf(activeReference?.let { biometricKeys.enabled(it) } == true)
             }
             val forgetReference: (Uri) -> Unit = { uri ->
                 runCatching { biometricKeys.remove(uri.toString()) }
@@ -126,6 +142,9 @@ class MainActivity : FragmentActivity() {
             var openJob by remember { mutableStateOf<Job?>(null) }
             var showSelector by rememberSaveable { mutableStateOf(false) }
             var localPickerOpen by rememberSaveable { mutableStateOf(false) }
+            var cloudAccountOpen by rememberSaveable { mutableStateOf(false) }
+            var cloudBrowserOpen by rememberSaveable { mutableStateOf(false) }
+            var cloudCopiesOpen by rememberSaveable { mutableStateOf(false) }
             var pickerError by remember { mutableStateOf<String?>(null) }
             var unavailableRecent by remember { mutableStateOf<VaultDocument?>(null) }
             var pendingRelinkUri by rememberSaveable { mutableStateOf<String?>(null) }
@@ -222,8 +241,43 @@ class MainActivity : FragmentActivity() {
                     }
                 }
             }
+            val openCloudVault: (CloudCopy, CharArray, Boolean) -> Unit = { copy, key, fromBiometric ->
+                openingStartedAtMillis = SystemClock.elapsedRealtime()
+                opening = true
+                unlockError = null
+                openJob = scope.launch {
+                    try {
+                        val (content, hash) = graph.cloudCopies.openVersioned(copy.id, key)
+                        if (cloudSelected?.id == copy.id) {
+                            sessionKey?.fill('\u0000')
+                            sessionKey = key.copyOf()
+                            baseline?.fill(0)
+                            baseline = hash
+                            cloudSelected = graph.cloudCopies.selected() ?: copy
+                            vaultIdleTimer.start(SystemClock.elapsedRealtime())
+                            opened = content
+                        }
+                    } catch (error: CancellationException) {
+                        throw error
+                    } catch (_: InvalidVaultKeyException) {
+                        if (fromBiometric) {
+                            runCatching { biometricKeys.remove(copy.id.biometricReference()) }
+                            biometricEnabled = false
+                        }
+                        unlockError = getString(R.string.unlock_error_key)
+                    } catch (_: Exception) {
+                        unlockError = getString(R.string.unlock_error_file)
+                    } finally {
+                        key.fill('\u0000')
+                        opening = false
+                    }
+                }
+            }
             BackHandler(showSelector) {
-                if (localPickerOpen) localPickerOpen = false else showSelector = false
+                if (cloudCopiesOpen) cloudCopiesOpen = false
+                else if (cloudBrowserOpen) cloudBrowserOpen = false
+                else if (cloudAccountOpen) cloudAccountOpen = false
+                else if (localPickerOpen) localPickerOpen = false else showSelector = false
                 pendingRelinkUri = null
             }
             BackHandler(opened != null && !showSelector) { lockVault() }
@@ -293,7 +347,68 @@ class MainActivity : FragmentActivity() {
             VaultkTheme(darkTheme = darkTheme) {
                 Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding()) {
                 if (showSelector) {
-                    if (localPickerOpen) LocalVaultPickerScreen(graph.browseLocalVaults,
+                    if (selectorDestination == VaultkDestination.Settings) {
+                        SettingsScreen(
+                            appearance = appearance,
+                            onAppearanceChange = { settings.appearance = it; appearance = it },
+                            biometricEnabled = biometricEnabled,
+                            onBiometricClick = null,
+                            timeoutSeconds = timeoutSeconds,
+                            onTimeoutClick = { lockedTimeoutDialogOpen = true },
+                            clipboardSeconds = clipboardSeconds,
+                            onClipboardChange = { session.clipboardSeconds = it; clipboardSeconds = it },
+                            searchNotes = searchNotes,
+                            onSearchNotesChange = { settings.searchNotes = it; searchNotes = it },
+                            showDetails = showDetails,
+                            onShowDetailsChange = { settings.showDetails = it; showDetails = it },
+                            modifier = Modifier.fillMaxSize(),
+                            fileAccessGranted = fullAccessGranted,
+                            onManageFileAccess = { manageFileAccess(false) },
+                            cloudAutoSync = cloudAutoSync,
+                            onCloudAutoSyncChange = { settings.cloudAutoSync = it; cloudAutoSync = it },
+                            cloudAllowMetered = cloudAllowMetered,
+                            onCloudAllowMeteredChange = { settings.cloudAllowMetered = it; cloudAllowMetered = it }
+                        )
+                    } else if (selectorDestination == VaultkDestination.Generator) {
+                        PasswordGeneratorScreen(Modifier.fillMaxSize())
+                    } else if (cloudCopiesOpen) CloudCopiesScreen(graph.cloudCopies,
+                        selected = cloudSelected, onBack = { cloudCopiesOpen = false }, onSelect = { copy ->
+                            graph.cloudCopies.select(copy.id)
+                            cloudSelected = copy
+                            lockVault()
+                            cloudCopiesOpen = false
+                            cloudAccountOpen = false
+                            showSelector = false
+                        }, onDeselect = {
+                            lockVault()
+                            graph.cloudCopies.select(null)
+                            cloudSelected = null
+                        }, synchronize = graph.synchronizeCloudCopy,
+                        destination = selectorDestination,
+                        onDestinationChange = { selectorDestination = it })
+                    else if (cloudAccountOpen || cloudBrowserOpen) OneDriveScreen(
+                        session = graph.cloudAccount,
+                        copies = graph.cloudCopies,
+                        host = this@MainActivity,
+                        onBack = {
+                            cloudAccountOpen = false
+                            cloudBrowserOpen = false
+                        },
+                        onCopies = { cloudCopiesOpen = true },
+                        onSelectCopy = { copy ->
+                            cloudSelected = copy
+                            graph.cloudCopies.select(copy.id)
+                            selected = null
+                            opened = null
+                            unlockError = null
+                            cloudCopiesOpen = false
+                            cloudAccountOpen = false
+                            cloudBrowserOpen = false
+                            showSelector = false
+                        },
+                        destination = selectorDestination,
+                        onDestinationChange = { selectorDestination = it })
+                    else if (localPickerOpen) LocalVaultPickerScreen(graph.browseLocalVaults,
                          onBack = { pendingRelinkUri = null; localPickerOpen = false }, onSelect = { id ->
                              val file = File(id.value)
                             val uri = Uri.fromFile(file)
@@ -310,6 +425,8 @@ class MainActivity : FragmentActivity() {
                                         if (relink.uri != uri) forgetReference(relink.uri)
                                     }
                                 } else { store.select(document); document }
+                                graph.cloudCopies.select(null)
+                                cloudSelected = null
                                 recent = store.recent()
                                 opened = null
                                 unlockError = null
@@ -317,67 +434,102 @@ class MainActivity : FragmentActivity() {
                                 localPickerOpen = false
                                 showSelector = false
                             }
-                        }) else OpenVaultScreen(
-                        recent = recent,
-                        currentUri = selected?.uri,
-                        unavailableRecent = unavailableRecent,
-                        onUnavailableDismiss = { unavailableRecent = null },
-                        onRemoveRecent = { document ->
-                            store.remove(document.reference)
-                            recent = store.recent()
-                            if (selected?.uri == document.uri) {
-                                openJob?.cancel()
-                                selected = null
-                                unlockError = null
+                        }) else {
+                        var persistentCloudCopies by remember { mutableStateOf<List<CloudCopy>>(emptyList()) }
+                        var isOneDriveConnected by remember { mutableStateOf<Boolean?>(null) }
+                        LaunchedEffect(cloudAccountOpen) {
+                            persistentCloudCopies = withContext(Dispatchers.IO) {
+                                runCatching { graph.cloudCopies.list() }.getOrDefault(emptyList())
                             }
-                            forgetReference(document.uri)
-                        },
-                        onRelocateRecent = { document ->
-                            pendingRelinkUri = document.uri.toString()
-                            unavailableRecent = null
-                            if (localFiles.permitted()) localPickerOpen = true else requestFullAccess()
-                        },
-                        onBack = { pendingRelinkUri = null; showSelector = false },
-                        fileAccessMode = fileAccessMode,
-                        onDevice = {
-                            pendingRelinkUri = null
-                            if (localFiles.permitted()) localPickerOpen = true else requestFullAccess()
-                        },
-                        onRecent = { document ->
-                            val currentName = if (document.uri.scheme == "file" && store.hasReadPermission(document.reference))
-                                document.uri.path?.let { File(it).name } else null
-                            if (currentName?.endsWith(".kdbx", ignoreCase = true) == true) {
-                                val refreshed = document.copy(name = currentName, selectedAt = System.currentTimeMillis())
-                                store.select(refreshed)
-                                selected = store.current()
+                            graph.cloudAccount.current { result ->
+                                isOneDriveConnected = result.getOrNull() != null
+                            }
+                        }
+                        OpenVaultScreen(
+                            recent = recent,
+                            currentUri = selected?.uri,
+                            unavailableRecent = unavailableRecent,
+                            onUnavailableDismiss = { unavailableRecent = null },
+                            onRemoveRecent = { document ->
+                                store.remove(document.reference)
                                 recent = store.recent()
-                                opened = null
-                                unlockError = null
+                                if (selected?.uri == document.uri) {
+                                    openJob?.cancel()
+                                    selected = null
+                                    unlockError = null
+                                }
+                                forgetReference(document.uri)
+                            },
+                            onRelocateRecent = { document ->
+                                pendingRelinkUri = document.uri.toString()
+                                unavailableRecent = null
+                                if (localFiles.permitted()) localPickerOpen = true else requestFullAccess()
+                            },
+                            onBack = { pendingRelinkUri = null; showSelector = false },
+                            fileAccessMode = fileAccessMode,
+                            onDevice = {
+                                pendingRelinkUri = null
+                                if (localFiles.permitted()) localPickerOpen = true else requestFullAccess()
+                            },
+                            onOneDrive = { cloudAccountOpen = true },
+                            onCloudCopies = { cloudCopiesOpen = true },
+                            oneDriveConnected = isOneDriveConnected,
+                            cloudCopies = persistentCloudCopies,
+                            onCloudCopyClick = { copy ->
+                                graph.cloudCopies.select(copy.id)
+                                cloudSelected = copy
+                                lockVault()
                                 showSelector = false
-                            } else {
-                                unavailableRecent = document
-                            }
-                        },
-                        errorMessage = pickerError,
-                        onErrorShown = { pickerError = null },
-                    )
+                            },
+                            destination = selectorDestination,
+                            onDestinationChange = { selectorDestination = it },
+                            onRecent = { document ->
+                                val currentName = if (document.uri.scheme == "file" && store.hasReadPermission(document.reference))
+                                    document.uri.path?.let { File(it).name } else null
+                                if (currentName?.endsWith(".kdbx", ignoreCase = true) == true) {
+                                    graph.cloudCopies.select(null)
+                                    cloudSelected = null
+                                    val refreshed = document.copy(name = currentName, selectedAt = System.currentTimeMillis())
+                                    store.select(refreshed)
+                                    selected = store.current()
+                                    recent = store.recent()
+                                    opened = null
+                                    unlockError = null
+                                    showSelector = false
+                                } else {
+                                    unavailableRecent = document
+                                }
+                            },
+                            errorMessage = pickerError,
+                            onErrorShown = { pickerError = null },
+                        )
+                    }
                 } else if (opened != null) {
-                    VaultContentScreen(opened!!, selected?.name.orEmpty(), onClose = lockVault,
+                    val isCloud = cloudSelected != null
+                    VaultContentScreen(
+                        content = opened!!,
+                        fallbackName = cloudSelected?.name ?: selected?.name.orEmpty(),
+                        onClose = lockVault,
                         editVault = graph.editVault,
-                        onLock = lockVault, timeoutSeconds = timeoutSeconds,
-                         onTimeoutChange = {
-                             session.timeoutSeconds = it
-                             timeoutSeconds = it
-                             vaultIdleTimer.start(SystemClock.elapsedRealtime())
-                         },
-                         appearance = appearance, onAppearanceChange = { settings.appearance = it; appearance = it },
+                        onLock = lockVault,
+                        timeoutSeconds = timeoutSeconds,
+                        onTimeoutChange = {
+                            session.timeoutSeconds = it
+                            timeoutSeconds = it
+                            vaultIdleTimer.start(SystemClock.elapsedRealtime())
+                        },
+                        appearance = appearance,
+                        onAppearanceChange = { settings.appearance = it; appearance = it },
                         clipboardSeconds = clipboardSeconds,
                         onClipboardChange = { session.clipboardSeconds = it; clipboardSeconds = it },
-                        searchNotes = searchNotes, onSearchNotesChange = { settings.searchNotes = it; searchNotes = it },
-                        showDetails = showDetails, onShowDetailsChange = { settings.showDetails = it; showDetails = it },
-                         onChangeVault = { lockVault(); showSelector = true },
-                         onManageFileAccess = { manageFileAccess(false) },
-                        fileAccessMode = fileAccessMode, fileAccessGranted = fullAccessGranted,
+                        searchNotes = searchNotes,
+                        onSearchNotesChange = { settings.searchNotes = it; searchNotes = it },
+                        showDetails = showDetails,
+                        onShowDetailsChange = { settings.showDetails = it; showDetails = it },
+                        onChangeVault = { lockVault(); showSelector = true },
+                        onManageFileAccess = { manageFileAccess(false) },
+                        fileAccessMode = fileAccessMode,
+                        fileAccessGranted = fullAccessGranted,
                         onFileAccessChange = { mode ->
                             if (mode == FileAccessMode.Standard || localFiles.permitted()) {
                                 settings.fileAccessMode = mode
@@ -385,83 +537,218 @@ class MainActivity : FragmentActivity() {
                                 fullAccessGranted = localFiles.permitted()
                             } else requestFullAccess()
                         },
+                        cloudAutoSync = cloudAutoSync,
+                        onCloudAutoSyncChange = { settings.cloudAutoSync = it; cloudAutoSync = it },
+                        cloudAllowMetered = cloudAllowMetered,
+                        onCloudAllowMeteredChange = { settings.cloudAllowMetered = it; cloudAllowMetered = it },
                         onExternalFormPickerChange = { externalFormPickerActive = it },
-                          onSave = { changed, progress, complete ->
-                             val source = selected
-                             val original = opened
-                             val key = sessionKey?.copyOf()
-                             val hash = baseline?.copyOf()
-                              if (source?.uri?.scheme != "file" || !localFiles.canRead(VaultId(requireNotNull(source.uri.path))) ||
-                                 original == null || key == null || hash == null) {
-                                 key?.fill('\u0000')
-                                 complete(getString(R.string.save_error_write))
-                             } else {
-                                  saveJob = scope.launch {
-                                  try {
-                                      val (saved, fingerprint) = saveLocalVault(
-                                          VaultId(requireNotNull(source.uri.path)), hash, key, original, changed
-                                      ) { update -> runOnUiThread { progress(update) } }
-                                     baseline?.fill(0)
-                                     baseline = fingerprint
-                                     opened = saved
-                                     complete(null)
-                                 } catch (_: InvalidVaultKeyException) {
-                                     complete(getString(R.string.unlock_error_key))
-                                 } catch (_: VaultConflictException) {
-                                     complete(getString(R.string.save_error_conflict))
-                                 } catch (error: CancellationException) {
-                                     throw error
-                                 } catch (_: Exception) {
-                                     complete(getString(R.string.save_error_write))
-                                 } finally {
-                                      key.fill('\u0000')
-                                     hash.fill(0)
-                                 }
-                                 }
-                             }
-                        }, biometricEnabled = biometricEnabled,
-                        onEnableBiometric = selected?.let { document -> { key, complete ->
-                            if (BiometricManager.from(this@MainActivity)
-                                    .canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) != BiometricManager.BIOMETRIC_SUCCESS) {
-                                key.fill('\u0000')
-                                complete(getString(R.string.unlock_biometric_unavailable))
-                            } else scope.launch {
-                                try {
-                                     openLocalVault(VaultId(requireNotNull(document.uri.path)), key)
-                                    val cipher = biometricKeys.encryptionCipher(document.uri.toString())
-                                    promptBiometric(document.name, cipher, { authenticated ->
+                        isCloudVault = isCloud,
+                        copy = cloudSelected,
+                        synchronize = if (isCloud) graph.synchronizeCloudCopy else null,
+                        isMeteredNetwork = isMeteredNetwork,
+                        onCopyUpdated = { cloudSelected = graph.cloudCopies.selected() },
+                        onRemoteDownloaded = {
+                            val updated = graph.cloudCopies.selected()
+                            cloudSelected = updated
+                            val key = sessionKey?.copyOf()
+                            if (updated != null && key != null) {
+                                scope.launch {
+                                    try {
+                                        val (reloaded, hash) = graph.cloudCopies.openVersioned(updated.id, key)
+                                        if (cloudSelected?.id == updated.id && opened != null) {
+                                            baseline?.fill(0)
+                                            baseline = hash
+                                            opened = reloaded
+                                        }
+                                    } catch (_: Exception) {
+                                        lockVault()
+                                    } finally {
+                                        key.fill('\u0000')
+                                    }
+                                }
+                            } else {
+                                key?.fill('\u0000')
+                            }
+                        },
+                        onViewStatus = if (isCloud) {
+                            {
+                                lockVault()
+                                showSelector = true
+                                cloudCopiesOpen = true
+                            }
+                        } else null,
+                        onUnlink = if (isCloud) {
+                            {
+                                lockVault()
+                                graph.cloudCopies.select(null)
+                                cloudSelected = null
+                            }
+                        } else null,
+                        onCloudSave = if (isCloud) {
+                            { changed, complete ->
+                                val copy = cloudSelected
+                                val original = opened
+                                val key = sessionKey?.copyOf()
+                                val hash = baseline?.copyOf()
+                                if (copy == null || original == null || key == null || hash == null) {
+                                    key?.fill('\u0000')
+                                    hash?.fill(0)
+                                    complete(getString(R.string.save_error_write))
+                                } else {
+                                    saveJob = scope.launch {
                                         try {
-                                            if (selected?.uri != document.uri) throw IllegalStateException()
-                                            biometricKeys.store(document.uri.toString(), authenticated, key)
-                                            biometricEnabled = true
+                                            val (saved, fingerprint) = graph.saveCloudCopyLocally(
+                                                copy.id, hash, key, original, changed)
+                                            baseline?.fill(0)
+                                            baseline = fingerprint
+                                            opened = saved
+                                            cloudSelected = graph.cloudCopies.selected()
                                             complete(null)
+                                        } catch (_: InvalidVaultKeyException) {
+                                            complete(getString(R.string.unlock_error_key))
+                                        } catch (_: VaultConflictException) {
+                                            complete(getString(R.string.save_error_conflict))
+                                        } catch (error: CancellationException) {
+                                            throw error
                                         } catch (_: Exception) {
+                                            complete(getString(R.string.save_error_write))
+                                        } finally {
+                                            key.fill('\u0000')
+                                            hash.fill(0)
+                                        }
+                                    }
+                                }
+                            }
+                        } else null,
+                        onSave = if (!isCloud) {
+                            { changed, progress, complete ->
+                                val source = selected
+                                val original = opened
+                                val key = sessionKey?.copyOf()
+                                val hash = baseline?.copyOf()
+                                if (source?.uri?.scheme != "file" || !localFiles.canRead(VaultId(requireNotNull(source.uri.path))) ||
+                                    original == null || key == null || hash == null) {
+                                    key?.fill('\u0000')
+                                    complete(getString(R.string.save_error_write))
+                                } else {
+                                    saveJob = scope.launch {
+                                        try {
+                                            val (saved, fingerprint) = saveLocalVault(
+                                                VaultId(requireNotNull(source.uri.path)), hash, key, original, changed
+                                            ) { update -> runOnUiThread { progress(update) } }
+                                            baseline?.fill(0)
+                                            baseline = fingerprint
+                                            opened = saved
+                                            complete(null)
+                                        } catch (_: InvalidVaultKeyException) {
+                                            complete(getString(R.string.unlock_error_key))
+                                        } catch (_: VaultConflictException) {
+                                            complete(getString(R.string.save_error_conflict))
+                                        } catch (error: CancellationException) {
+                                            throw error
+                                        } catch (_: Exception) {
+                                            complete(getString(R.string.save_error_write))
+                                        } finally {
+                                            key.fill('\u0000')
+                                            hash.fill(0)
+                                        }
+                                    }
+                                }
+                            }
+                        } else null,
+                        biometricEnabled = biometricEnabled,
+                        onEnableBiometric = if (isCloud) {
+                            { key, complete ->
+                                val copy = cloudSelected
+                                if (copy == null || BiometricManager.from(this@MainActivity)
+                                        .canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) != BiometricManager.BIOMETRIC_SUCCESS) {
+                                    key.fill('\u0000')
+                                    complete(getString(R.string.unlock_biometric_unavailable))
+                                } else scope.launch {
+                                    try {
+                                        graph.cloudCopies.open(copy.id, key)
+                                        val reference = copy.id.biometricReference()
+                                        val cipher = biometricKeys.encryptionCipher(reference)
+                                        promptBiometric(copy.name, cipher, { authenticated ->
+                                            try {
+                                                if (cloudSelected?.id != copy.id || opened == null) throw IllegalStateException()
+                                                biometricKeys.store(reference, authenticated, key)
+                                                biometricEnabled = true
+                                                complete(null)
+                                            } catch (_: Exception) {
+                                                runCatching { biometricKeys.remove(reference) }
+                                                complete(getString(R.string.unlock_biometric_error))
+                                            } finally { key.fill('\u0000') }
+                                        }, {
+                                            key.fill('\u0000')
+                                            complete(getString(R.string.unlock_biometric_error))
+                                        })
+                                    } catch (_: InvalidVaultKeyException) {
+                                        key.fill('\u0000')
+                                        complete(getString(R.string.unlock_error_key))
+                                    } catch (_: Exception) {
+                                        key.fill('\u0000')
+                                        complete(getString(R.string.unlock_biometric_error))
+                                    }
+                                }
+                            }
+                        } else selected?.let { document ->
+                            { key, complete ->
+                                if (BiometricManager.from(this@MainActivity)
+                                        .canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG) != BiometricManager.BIOMETRIC_SUCCESS) {
+                                    key.fill('\u0000')
+                                    complete(getString(R.string.unlock_biometric_unavailable))
+                                } else scope.launch {
+                                    try {
+                                        openLocalVault(VaultId(requireNotNull(document.uri.path)), key)
+                                        val cipher = biometricKeys.encryptionCipher(document.uri.toString())
+                                        promptBiometric(document.name, cipher, { authenticated ->
+                                            try {
+                                                if (selected?.uri != document.uri) throw IllegalStateException()
+                                                biometricKeys.store(document.uri.toString(), authenticated, key)
+                                                biometricEnabled = true
+                                                complete(null)
+                                            } catch (_: Exception) {
+                                                runCatching { biometricKeys.remove(document.uri.toString()) }
+                                                complete(getString(R.string.unlock_biometric_error))
+                                            } finally { key.fill('\u0000') }
+                                        }, {
+                                            key.fill('\u0000')
                                             runCatching { biometricKeys.remove(document.uri.toString()) }
                                             complete(getString(R.string.unlock_biometric_error))
-                                        } finally { key.fill('\u0000') }
-                                    }, {
+                                        })
+                                    } catch (_: InvalidVaultKeyException) {
+                                        key.fill('\u0000')
+                                        complete(getString(R.string.unlock_error_key))
+                                    } catch (_: Exception) {
                                         key.fill('\u0000')
                                         runCatching { biometricKeys.remove(document.uri.toString()) }
                                         complete(getString(R.string.unlock_biometric_error))
-                                    })
-                                } catch (_: InvalidVaultKeyException) {
-                                    key.fill('\u0000')
-                                    complete(getString(R.string.unlock_error_key))
-                                } catch (_: Exception) {
-                                    key.fill('\u0000')
-                                    runCatching { biometricKeys.remove(document.uri.toString()) }
-                                    complete(getString(R.string.unlock_biometric_error))
+                                    }
                                 }
                             }
-                        } },
-                        onDisableBiometric = selected?.let { document -> {
-                            runCatching { biometricKeys.remove(document.uri.toString()) }
-                            biometricEnabled = false
-                            Toast.makeText(this@MainActivity, getString(R.string.content_biometric_disabled), Toast.LENGTH_SHORT).show()
-                        } })
+                        },
+                        onDisableBiometric = if (isCloud) {
+                            {
+                                cloudSelected?.let { runCatching { biometricKeys.remove(it.id.biometricReference()) } }
+                                biometricEnabled = false
+                                Toast.makeText(this@MainActivity, getString(R.string.content_biometric_disabled), Toast.LENGTH_SHORT).show()
+                            }
+                        } else selected?.let { document ->
+                            {
+                                runCatching { biometricKeys.remove(document.uri.toString()) }
+                                biometricEnabled = false
+                                Toast.makeText(this@MainActivity, getString(R.string.content_biometric_disabled), Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    )
                 } else {
                     UnlockVaultScreen(
-                         vault = selected?.takeIf { it.uri.scheme == "file" }?.let {
+                         vault = cloudSelected?.let {
+                             SelectedVault(it.name, stringResource(R.string.cloud_origin),
+                                 null, stringResource(R.string.vault_locked),
+                                 biometricEnabled, it.id.biometricReference())
+                         } ?: selected?.takeIf { it.uri.scheme == "file" }?.let {
                              SelectedVault(it.name, stringResource(R.string.vault_origin_local),
                                  it.openedAt?.let { time -> DateFormat.getDateTimeInstance().format(Date(time)) }
                                       ?: stringResource(R.string.vault_never_opened), stringResource(R.string.vault_locked),
@@ -470,29 +757,35 @@ class MainActivity : FragmentActivity() {
                         loading = opening,
                         openingStartedAtMillis = openingStartedAtMillis,
                         errorMessage = unlockError,
+                        onErrorDismiss = { unlockError = null },
                         onSelectVault = {
                             openJob?.cancel()
                             unlockError = null
                             showSelector = true
                         },
-                          onUnlock = selected?.takeIf { it.uri.scheme == "file" }?.let { document -> { key -> openVault(document, key, false) } },
-                           onBiometricUnlock = selected?.takeIf { it.uri.scheme == "file" && biometricEnabled }?.let { document -> {
-                             if (!opening) {
-                                 try {
-                                     val cipher = biometricKeys.decryptionCipher(document.uri.toString())
-                                     promptBiometric(document.name, cipher, { authenticated ->
-                                         try {
-                                             val key = biometricKeys.recover(document.uri.toString(), authenticated)
-                                             if (selected?.uri == document.uri && opened == null) openVault(document, key, true)
-                                             else key.fill('\u0000')
-                                         } catch (_: Exception) {
-                                             runCatching { biometricKeys.remove(document.uri.toString()) }
-                                             biometricEnabled = false
-                                             unlockError = getString(R.string.unlock_biometric_invalidated)
-                                         }
-                                     }, { unlockError = getString(R.string.unlock_biometric_error) })
-                                 } catch (_: Exception) {
-                                     runCatching { biometricKeys.remove(document.uri.toString()) }
+                           onUnlock = cloudSelected?.let { copy -> { key -> openCloudVault(copy, key, false) } }
+                               ?: selected?.takeIf { it.uri.scheme == "file" }?.let { document -> { key -> openVault(document, key, false) } },
+                            onBiometricUnlock = activeReference?.takeIf { biometricEnabled }?.let { reference -> {
+                              if (!opening) {
+                                  try {
+                                      val cipher = biometricKeys.decryptionCipher(reference)
+                                      promptBiometric(cloudSelected?.name ?: selected?.name.orEmpty(), cipher, { authenticated ->
+                                          try {
+                                              val key = biometricKeys.recover(reference, authenticated)
+                                              val copy = cloudSelected
+                                              val document = selected
+                                              if (opened != null || activeReference != reference) key.fill('\u0000')
+                                              else if (copy != null) openCloudVault(copy, key, true)
+                                              else if (document?.uri?.scheme == "file") openVault(document, key, true)
+                                              else key.fill('\u0000')
+                                          } catch (_: Exception) {
+                                              runCatching { biometricKeys.remove(reference) }
+                                              biometricEnabled = false
+                                              unlockError = getString(R.string.unlock_biometric_invalidated)
+                                          }
+                                      }, { unlockError = getString(R.string.unlock_biometric_error) })
+                                  } catch (_: Exception) {
+                                      runCatching { biometricKeys.remove(reference) }
                                      biometricEnabled = false
                                      unlockError = getString(R.string.unlock_biometric_invalidated)
                                  }
@@ -513,16 +806,12 @@ class MainActivity : FragmentActivity() {
                                 showDetails = showDetails,
                                 onShowDetailsChange = { settings.showDetails = it; showDetails = it },
                                 modifier = contentModifier,
-                                fileAccessMode = fileAccessMode,
                                 fileAccessGranted = fullAccessGranted,
-                                onFileAccessChange = { mode ->
-                                    if (mode == FileAccessMode.Standard || localFiles.permitted()) {
-                                        settings.fileAccessMode = mode
-                                        fileAccessMode = mode
-                                        fullAccessGranted = localFiles.permitted()
-                                    } else requestFullAccess()
-                                },
                                 onManageFileAccess = { manageFileAccess(false) },
+                                cloudAutoSync = cloudAutoSync,
+                                onCloudAutoSyncChange = { settings.cloudAutoSync = it; cloudAutoSync = it },
+                                cloudAllowMetered = cloudAllowMetered,
+                                onCloudAllowMeteredChange = { settings.cloudAllowMetered = it; cloudAllowMetered = it },
                             )
                             if (lockedTimeoutDialogOpen) LockTimeoutDialog(timeoutSeconds,
                                 { session.timeoutSeconds = it; timeoutSeconds = it }) {

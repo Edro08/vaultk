@@ -1,4 +1,4 @@
-package com.edro08.vaultk.ui.screen
+package com.edro08.vaultk.ui.screen.generator
 
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke

@@ -24,13 +24,12 @@ import com.edro08.vaultk.application.EntryFormData
 import com.edro08.vaultk.application.CopyCredential
 import com.edro08.vaultk.data.AndroidCredentialClipboard
 import com.edro08.vaultk.ui.LocalCopyCredential
-import com.edro08.vaultk.ui.screen.EntryDetailScreen
-import com.edro08.vaultk.ui.screen.EntryFormScreen
-import com.edro08.vaultk.ui.screen.PasswordGeneratorScreen
+import com.edro08.vaultk.ui.screen.vault.EntryDetailScreen
+import com.edro08.vaultk.ui.screen.vault.EntryFormScreen
+import com.edro08.vaultk.ui.screen.generator.PasswordGeneratorScreen
 import com.edro08.vaultk.ui.theme.VaultkTheme
 import org.junit.Rule
 import org.junit.Test
-import org.linguafranca.pwdb.PropertyValue
 import com.edro08.vaultk.data.KdbxVaultValueFactory
 import java.time.Instant
 

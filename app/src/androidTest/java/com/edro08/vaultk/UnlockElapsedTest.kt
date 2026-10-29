@@ -10,9 +10,9 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.semantics.SemanticsProperties
-import com.edro08.vaultk.ui.screen.SelectedVault
-import com.edro08.vaultk.ui.screen.UnlockVaultScreen
-import com.edro08.vaultk.ui.screen.formatOpeningElapsed
+import com.edro08.vaultk.ui.screen.storage.SelectedVault
+import com.edro08.vaultk.ui.screen.storage.UnlockVaultScreen
+import com.edro08.vaultk.ui.screen.storage.formatOpeningElapsed
 import com.edro08.vaultk.ui.theme.VaultkTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule

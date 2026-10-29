@@ -19,6 +19,14 @@ import java.io.FileNotFoundException
 
 /** Android composition root: concrete adapters are known here, not by the use cases. */
 class VaultkGraph(context: Context) {
+    private val cloudCopyStore = com.edro08.vaultk.data.PrivateCloudCopyStore(
+        java.io.File(context.filesDir, "onedrive-copies"))
+    val cloudCopies = com.edro08.vaultk.application.ManageCloudCopies(
+        cloudCopyStore)
+    val saveCloudCopyLocally = com.edro08.vaultk.application.SaveCloudCopyLocally(cloudCopyStore)
+    private val msalCloudAccount = com.edro08.vaultk.data.MsalCloudAccountSession(context, cloudCopyStore)
+    val cloudAccount = com.edro08.vaultk.application.ManageCloudAccount(msalCloudAccount)
+    val synchronizeCloudCopy = com.edro08.vaultk.application.SynchronizeCloudCopy(msalCloudAccount)
     val recentVaults = com.edro08.vaultk.application.ManageRecentVaults(
         com.edro08.vaultk.data.VaultSelectionStore(context))
     val biometricUnlock = com.edro08.vaultk.application.ManageBiometricUnlock(

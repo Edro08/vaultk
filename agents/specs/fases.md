@@ -762,78 +762,158 @@ deben sentirse como partes de la misma aplicación.
 
 ---
 
-# FASE 22 — OneDrive
+# FASE 22 — OneDrive (subfases 22.01–22.08)
 
-Implementar OneDrive como última fase.
+Objetivo: seleccionar cualquier `.kdbx` del OneDrive propio, conservar una
+copia KDBX cifrada en almacenamiento privado, abrirla offline y sincronizarla
+sin sobrescribir cambios de otro dispositivo. Conservar el acceso local directo
+y SAF únicamente para adjuntos. Primera entrega funcional: 22.01–22.04; las
+subfases siguientes completan la sincronización y recuperación.
 
-Agregar inicio de sesión con cuenta Microsoft.
+## 22.01 — Identidad Microsoft
 
-Desde:
+- Seguir [el registro de Entra ID](onedrive-registro.md) para cuentas personales
+  y de trabajo antes de probar autenticación real.
+- Registrar Vaultk como aplicación pública Android en Entra ID; configurar
+  identificador de aplicación, tipos de cuenta admitidos y redirección basada
+  en paquete y firma real (depuración y publicación por separado).
+- Integrar MSAL para OAuth 2.0 con PKCE, sin client secret dentro del APK.
+- Para navegar por la unidad propia completa solicitar el permiso delegado
+  `Files.ReadWrite` mediante consentimiento; `Files.ReadWrite.AppFolder` solo
+  sirve si se restringe el selector a la carpeta de aplicación. No solicitar
+  permisos de aplicación ni `Files.ReadWrite.All` por defecto.
+- Conectar, recuperar cuenta/token silenciosamente y desconectar; gestionar
+  caducidad y revocación sin registrar tokens.
 
-    Abrir vault
+**Terminado cuando:** se inicia sesión y solo se accede al ámbito consentido.
 
-permitir:
+## 22.02 — Explorador y descarga
 
-    OneDrive
+- Incorporar OneDrive en `Abrir vault`, listar carpetas y filtrar `.kdbx`.
+- Seleccionar por identificadores estables de unidad y elemento, no por ruta
+  ni nombre; descargar con progreso a temporal privado y verificar respuesta
+  e integridad antes de publicar la copia en caché.
+- No exponer contenido, URL de descarga o token en mensajes y registros.
 
-Crear selector propio:
+**Terminado cuando:** puede seleccionarse y descargarse un KDBX.
 
-    OneDrive
-    cuenta@outlook.com
+## 22.03 — Apertura y caché offline
 
-    Buscar en OneDrive...
+- Abrir la copia cifrada con el motor KDBX existente sin persistir texto claro;
+  conservar ID de cuenta, unidad/elemento, ETag base y referencia privada.
+- Mantener biometría por referencia estable y apertura offline tras la primera
+  descarga. Separar caché de OneDrive de los vaults locales compartidos.
+- Definir exclusiones de backup/transferencia para caché, credenciales y
+  metadatos sensibles antes de escribirlos; no borrar cambios pendientes al
+  desconectar ni al cambiar de cuenta.
 
-    Mi unidad > Passwords
+**Terminado cuando:** el vault abre online y offline tras la primera descarga.
 
-    📁 Backups
-    📁 Personal
+### Orden de entrega 22.03 (copias y apertura)
 
-    🔐 Edro.kdbx
-    🔐 Personal.kdbx
+1. **22.03a — Inventario privado:** definir referencia estable
+   `(cuenta, unidad, elemento)`, nombre solo para mostrar, ETag base, tamaño,
+   fecha y estado `limpia/pendiente/conflicto`. Escritura atómica de metadatos
+   y KDBX cifrado bajo `filesDir`, fuera de la caché temporal y excluida de
+   backup/transferencia. No migrar ni borrar automáticamente descargas previas
+   de `cacheDir`; nunca usar un nombre proporcionado por Graph como ruta.
+2. **22.03b — Promoción segura:** descargar a un temporal, comprobar tamaño,
+   firma y ETag, publicar la copia cifrada y el inventario de manera recuperable.
+   No sustituir una copia con cambios pendientes o estado desconocido. Probar
+   corte de proceso, falta de espacio y archivo parcial con datos sintéticos.
+3. **22.03c — Apertura:** abrir solo la copia privada con el lector KDBX y la
+   contraseña introducida localmente; verificar integridad completa al abrir,
+   admitir offline y biometría por referencia estable, sin escribir al remoto.
+   Bloquear guardado/edición remotos hasta 22.04; no reutilizar el guardado
+   local sobre esta copia como si fuera una bóveda compartida del dispositivo.
+4. **22.03d — Gestionar copias:** mostrar tamaño, fecha, cuenta y estado, con
+   acción explícita «Eliminar copia de este dispositivo» y confirmación. Nunca
+   enviar DELETE a Graph ni borrar la cuenta. Prohibir eliminación de copias
+   pendientes, en conflicto, en uso o cuyo estado no pueda verificarse;
+   conservar sus metadatos de recuperación. Pruebas de aislamiento entre
+   cuentas y de fallo parcial. No ofrecer «Borrar datos» como alternativa.
 
-Permitir:
+**Puerta de validación:** completar cada paso con tests de adaptador/caso de
+uso, sin usar el KDBX real del usuario. Validar apertura y borrado voluntario
+solo con vaults sintéticos antes de considerar 22.03 completada.
 
-- navegar carpetas;
-- buscar `.kdbx`;
-- seleccionar vault;
-- descargarlo;
-- abrirlo;
-- modificarlo;
-- volver a subirlo.
+## 22.04 — Guardado y subida condicionada
 
-El vault debe guardar información suficiente para recordar su archivo remoto.
+- Reutilizar escritura temporal, verificación de KDBX y reemplazo seguro en
+  almacenamiento privado; marcar `pendiente` de manera durable antes de subir.
+- Leer versión remota y usar escritura condicional con `If-Match` del ETag
+  conocido (incluida la creación/confirmación de sesiones de carga según la
+  operación Graph). Un HEAD previo **no** reemplaza la precondición atómica.
+- Tratar `412`, eliminación remota, error de red y resultado ambiguo como
+  pendiente/conflicto, nunca como éxito. Confirmar ID/ETag remoto y solo
+  entonces actualizar la base de sincronización. No reintentar a ciegas una
+  subida cuyo resultado sea desconocido.
 
-La pantalla principal podrá mostrar:
+**Terminado cuando:** el guardado local sobrevive a un fallo de subida y no
+sobrescribe una versión remota inesperada.
 
-    Vaultk 🔒
-    ● Edro · OneDrive · Sincronizado
+### Orden de entrega 22.04 (sin edición remota prematura)
 
-Estados posibles:
+1. **22.04a — Guardado privado:** preparar KDBX cifrado con el escritor existente,
+   verificarlo con la llave local y huella esperada, publicar blob inmutable y
+   `Pending` de forma atómica. Conservar el ETag base y la versión anterior como
+   recuperación. Sin UI editable ni subida aún. Probar cortes y llave errónea
+   con un KDBX sintético; no usar la copia del usuario.
+2. **22.04b — Subida condicional:** implementar `If-Match` real del ETag base en
+   Graph (carga pequeña y sesión de carga según tamaño), sin HEAD como garantía.
+   Comprobar la semántica de cada endpoint; si no admite precondición atómica,
+   no activar escritura en ese modo. Nunca reenviar la contraseña ni reintentar
+   automáticamente una operación de resultado incierto. Protocolo de pruebas y
+   límites documentales en [onedrive-subida-condicional.md](onedrive-subida-condicional.md).
+3. **22.04c — Confirmación y UX:** verificar ID y ETag tras la respuesta,
+   actualizar `Clean` solo cuando sea inequívoco. Conservar `Pending/Conflict`
+   ante 412, 404, error de red o resultado ambiguo. Entonces habilitar la
+   edición remota con estados explícitos y sin ruta al guardado local compartido.
 
-    Sincronizado
-    Sincronizando
-    Cambios pendientes
-    Sin conexión
-    Conflicto
-    Error
+**Puerta:** no habilitar edición de OneDrive hasta demostrar con pruebas de
+concurrencia que ningún cambio ajeno puede sobrescribirse silenciosamente.
 
-Antes de sobrescribir el archivo remoto, comprobar que no haya sido modificado por otro dispositivo.
+## 22.05 — Sincronización bidireccional
 
-Si existe un conflicto:
+- Consultar ETag al abrir y antes de guardar; descargar cambios ajenos solo
+  cuando no hay cambios locales pendientes.
+- Sincronizar al guardar, al regresar a la aplicación y bajo petición manual;
+  estados sincronizado, pendiente, sincronizando, error y conflicto.
 
-- no sobrescribir silenciosamente;
-- informar al usuario;
-- permitir recuperar o resolver el conflicto.
+**Terminado cuando:** ambos sentidos funcionan sin descartar ediciones locales.
 
-OneDrive debe reutilizar exactamente las mismas pantallas:
+## 22.06 — Conflictos y recuperación
 
-    Vault
-    Grupos
-    Ver entrada
-    Nueva entrada
-    Editar entrada
+- Conservar ambos KDBX cifrados antes de resolver; mostrar versiones y permitir
+  elegir explícitamente local o remota, sin fusión automática inicial.
+- Añadir copias de recuperación cifradas y registro de operaciones sin secretos.
 
-La única diferencia debe ser dónde se lee y guarda el archivo.
+**Terminado cuando:** ningún conflicto se resuelve con sobrescritura silenciosa.
+
+## 22.07 — Interfaz y ajustes
+
+- Mostrar origen Local/OneDrive, estado y última sincronización; acciones
+  Sincronizar ahora, Ver estado y Desvincular, con progreso de transferencias.
+- Ajustar sincronización automática y datos móviles sin sustituir las pantallas
+  existentes de vault, grupos y entradas.
+- Mantener «Copias descargadas» accesible aunque la cuenta esté desconectada;
+  distinguir borrar copia local, quitar referencia y borrar en OneDrive.
+
+**Terminado cuando:** el flujo nube se integra en la interfaz existente.
+
+## 22.08 — Pruebas y endurecimiento
+
+- Probar cortes durante transferencia, ediciones concurrentes, tokens caducados,
+  permisos revocados, archivos eliminados y respuestas ambiguas.
+- Verificar integridad y apertura KDBX tras descarga, y ausencia de secretos
+  en logs y notificaciones. No usar ni modificar el KDBX del usuario en pruebas.
+
+**Terminado cuando:** interrupciones y conflictos no pierden datos.
+
+Mantener los contratos remotos en `domain`, orquestación en `application`,
+MSAL/Graph/archivos privados en `data` y ensamblaje en `VaultkGraph`; ninguna
+pantalla invoca adaptadores directamente. La contraseña maestra no se envía a
+Microsoft. Cada corte debe verificarse antes de continuar con el siguiente.
 
 ---
 

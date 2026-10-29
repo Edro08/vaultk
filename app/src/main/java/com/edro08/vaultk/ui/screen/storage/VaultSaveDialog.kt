@@ -1,4 +1,4 @@
-package com.edro08.vaultk.ui.screen
+package com.edro08.vaultk.ui.screen.storage
 
 import android.os.SystemClock
 import androidx.compose.foundation.layout.Arrangement

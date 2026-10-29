@@ -13,6 +13,7 @@ argon2kt = "1.6.0"
 googleCodeScanner = "16.1.0"
 biometric = "1.1.0"
 fragment = "1.8.8"
+msal = "8.6.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -36,6 +37,7 @@ stax-api = { group = "org.apache.geronimo.specs", name = "geronimo-stax-api_1.2_
 google-code-scanner = { group = "com.google.android.gms", name = "play-services-code-scanner", version.ref = "googleCodeScanner" }
 androidx-biometric = { group = "androidx.biometric", name = "biometric", version.ref = "biometric" }
 androidx-fragment = { group = "androidx.fragment", name = "fragment", version.ref = "fragment" }
+msal = { group = "com.microsoft.identity.client", name = "msal", version.ref = "msal" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

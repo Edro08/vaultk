@@ -1,6 +1,751 @@
 # Historial de Vaultk
 
-Fases completadas en orden cronológico descendente (la más reciente primero).
+Fases y cortes en orden cronológico descendente (el más reciente primero).
+
+## 2026-10-27 — Rediseño del explorador de grupos y modal de nuevo grupo
+
+- **Explorador de grupos y navegación jerárquica ([GroupPickerSheet.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/GroupPickerSheet.kt))**:
+  - **Diferenciación clara de las tres acciones**:
+    - **← Flecha atrás**: navega al grupo padre inmediato. En la raíz (`Raíz`), se oculta/deshabilita con transparencia para preservar el espaciado visual.
+    - **Ruta de migas de pan (Breadcrumbs `Raíz › Cuentas-Y`)**: muestra el camino jerárquico actual; cada nivel antecesor es interactivo y permite saltar directamente a ese nivel con un solo toque.
+    - **✕ Botón de cierre**: descarta y cierra el selector regresando al vault sin cambiar el grupo activo (`onDismiss`).
+    - **Botón inferior «Usar grupo [Nombre]»**: botón primario en píldora violeta (`#BD9BDB`) a ancho completo que confirma y selecciona el grupo actualmente explorado (`onSelect(browse.group.id)`).
+  - **Sección «Subgrupos» y lista exploratoria**:
+    - Cabecera con título «Subgrupos» y botón tonal `[📁+] Nuevo grupo`.
+    - Cada subgrupo se presenta en una tarjeta oscura con icono de carpeta violeta, nombre y chevron `>`. Tocar un subgrupo permite adentrarse a explorar su contenido.
+    - Buscador integrado `[🔍] Buscar grupo` con filtrado dinámico.
+    - Se retiró el mensaje obsoleto inferior («Guarda una copia KDBX después de crear un grupo para conservarlo»), dejando limpia la parte inferior detrás del botón de confirmación.
+- **Modal de creación de grupo ([GroupPickerSheet.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/GroupPickerSheet.kt))**:
+  - Rediseño con tarjeta modal oscura (`#171622`) y bordes refinados según el mockup provisto.
+  - Título «Nuevo grupo» y subtítulo descriptivo «Crea un grupo dentro de la ubicación actual.».
+  - Campo de texto «Nombre del grupo» con placeholder «Ej. Servidores».
+  - Caja contextual informativa «Se creará dentro de» mostrando el icono de carpeta y la ruta completa (`📁 Raíz › Cuentas-Y`).
+  - Botones inferiores «Cancelar» (texto) y «Crear grupo» (píldora tonal deshabilitada hasta que el nombre sea válido y no duplicado).
+- **Verificación**:
+  - `compileDebugKotlin` y `compileDebugAndroidTestKotlin` ejecutados con éxito.
+  - Pruebas instrumentadas superadas en `Pixel_9_Pro(AVD) - 15` (`GroupPickerLayoutTest` y `VaultHomeTest#selectsNestedGroupAndOpensEntryWithoutLeavingSession`).
+  - APK debug compilada e instalada en el emulador.
+
+## 2026-10-27 — Notificación flotante en desbloqueo y corrección de superposición con FAB
+
+- **Notificación de errores al abrir/desbloquear vault ([UnlockVaultScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/storage/UnlockVaultScreen.kt))**:
+  - Se eliminó el texto estático en rojo (`Text(errorMessage, color = error)`) debajo del botón de desbloqueo.
+  - Se integró el componente `VaultkNotificationCard` con icono de error (`Icons.Outlined.ErrorOutline`), borde oscuro de contraste y botón de descarte manual `✕`.
+  - Se añadió descarte automático mediante `LaunchedEffect` tras 4 segundos, invocando el callback `onErrorDismiss` que sincroniza el borrado de `unlockError` en `MainActivity.kt`.
+- **Corrección de superposición con FloatingActionButton en vista principal ([VaultContentScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/VaultContentScreen.kt))**:
+  - Se detectó que la tarjeta flotante de notificación (p. ej. sincronización de copia local) se posicionaba a nivel inferior directo (`padding(bottom = 8.dp)`), quedando montada por debajo del botón flotante de agregar entrada (`+` FAB).
+  - Se ajustó dinámicamente el espaciado inferior de la tarjeta: cuando el botón FAB está presente (`hasFab = destination == Vault && entry == null && editable && !saving && !syncing`), el padding inferior se eleva a `80.dp`, posicionando la notificación limpiamente por encima del FAB sin superposiciones ni colisiones visuales.
+- **Verificación**:
+  - `compileDebugKotlin` y `compileDebugAndroidTestKotlin` ejecutados con éxito.
+  - Pruebas instrumentadas `UnlockElapsedTest` (2/2) y `CloudVaultContentScreenTest` (4/4) aprobadas en `Pixel_9_Pro(AVD) - 15`.
+  - APK debug instalado y desplegado en el emulador activo.
+
+## 2026-10-26 — Notificaciones flotantes auto-descartables y unificación de estados vacíos
+
+- **Notificaciones flotantes temporales ([VaultkControls.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/component/VaultkControls.kt))**:
+  - Se creó el componente `VaultkNotificationCard` en formato píldora oscura con borde fino, icono representativo (nube verde con check `#44DB98` para sincronización exitosa, alerta roja para incidencias), mensaje descriptivo y botón de cierre `✕`.
+  - Se eliminaron los mensajes que permanecían fijos indefinidamente en la parte superior de las listas (`VaultContentScreen.kt` y `CloudCopiesScreen.kt`). Ahora se muestran como tarjetas flotantes en la parte inferior sobre la barra de navegación, con transiciones animadas (`fadeIn` y `slideInVertically`), cerrándose automáticamente tras 4 segundos o al pulsar `✕`.
+  - Integrado en el `SnackbarHost` de [OpenVaultScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/storage/OpenVaultScreen.kt) para unificar la retroalimentación visual en la selección de archivos y en toda la aplicación.
+- **Unificación de diseño de estados vacíos ([EmptyState](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/component/VaultkControls.kt))**:
+  - En [CloudCopiesScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/storage/CloudCopiesScreen.kt): se reemplazó el texto plano sin estilo («Todavía no hay copias persistentes...») por una tarjeta `VaultkCard` con `EmptyState`, icono `Icons.Outlined.CloudOff`, título «No hay copias sin conexión» y descripción contextualizada.
+  - En [VaultContentScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/VaultContentScreen.kt): se incorporó el icono centrado en color violeta para el estado de grupo vacío (`Icons.Outlined.FolderOpen`), alineándolo con el mockup del usuario.
+  - En [LocalVaultPickerScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/storage/LocalVaultPickerScreen.kt): se actualizaron los estados de carpeta vacía y error a tarjetas `VaultkCard` con `EmptyState`.
+- **Verificación**:
+  - `compileDebugKotlin` y `compileDebugAndroidTestKotlin` superados sin advertencias bloqueantes.
+  - Pruebas instrumentadas `connectedDebugAndroidTest` (`CloudVaultContentScreenTest` y `CloudCopiesScreenTest`, 7/7 tests) aprobadas en `Pixel_9_Pro(AVD) - 15`.
+  - Pruebas unitarias `testDebugUnitTest` superadas al 100%.
+  - APK debug instalado y desplegado en el emulador.
+
+## 2026-10-26 — Animación de sincronización en la nube y rediseño del popup de estado
+
+- **Animación de la nube en la cabecera ([VaultContentScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/VaultContentScreen.kt))**:
+  - Se eliminó la barra de progreso lineal (`LinearProgressIndicator`) que aparecía al abrir el vault empujando la lista de entradas.
+  - Se reemplazó por un indicador circular (`CircularProgressIndicator`) con pista sutil que envuelve el icono de la nube en la barra superior durante la sincronización (`CloudSync`).
+  - Al completarse la sincronización, el anillo circular desaparece y la nube muestra el icono de verificación (`CloudDone`) en color primario sin interferir con el contenido.
+- **Rediseño del diálogo modal de Estado de sincronización ([VaultContentScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/VaultContentScreen.kt))**:
+  - Contenedor modal con esquinas redondeadas (`28.dp`) siguiendo el mockup del usuario.
+  - Cabecera con indicador verde `OneDrive · copia privada` y checkmark con estado conciso («Sincronizada · Sin cambios locales pendientes»).
+  - Listado de datos con iconos:
+    - `FolderOpen`: «Origen: OneDrive».
+    - `Description`: «Archivo: [nombre]».
+    - `Inventory2`: «Tamaño: [X.X KB]» con desglose en bytes.
+    - `Schedule`: «Última sinc. · [fecha y hora formateada]».
+    - `VpnKey`: «ETag base:» y hash correspondiente.
+  - Botones de acción inferiores en disposición horizontal:
+    - Botón redondeado de «Cancelar» a la par del botón primario de «Sincronizar ahora» (con icono `Sync`).
+    - Se retiraron del popup los botones «Desvincular» y «Abrir copias sin conexión», manteniéndolos en el menú principal `⋮`.
+- **Verificación**:
+  - `compileDebugKotlin` y `compileDebugAndroidTestKotlin` superados sin errores.
+  - Pruebas instrumentadas `CloudVaultContentScreenTest` (4/4) ejecutadas y aprobadas en `Pixel_9_Pro(AVD) - 15`.
+  - `testDebugUnitTest` superado al 100%.
+  - APK debug instalado y desplegado en el emulador.
+
+## 2026-10-26 — Organización del menú de bóveda en secciones con iconos y separadores
+
+- **Menú de opciones de la bóveda abierta ([VaultContentScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/VaultContentScreen.kt))**:
+  - **Organización por secciones funcionales**:
+    - **Sección Vault**: «Bloquear vault» (`Icons.Outlined.Lock`), «Cambiar vault» (`Icons.Outlined.FolderOpen`) y «Guardar vault» (`Icons.Outlined.Save`, cuando aplica).
+    - **Línea divisoria horizontal** (`HorizontalDivider`).
+    - **Sección Online / OneDrive** (cuando la bóveda proviene de la nube): «Sincronizar ahora» (`Icons.Outlined.CloudSync`), «Ver estado de sincronización» (`Icons.Outlined.Info`) y «Desvincular de OneDrive» (`Icons.Outlined.LinkOff`).
+    - **Línea divisoria horizontal** (`HorizontalDivider`).
+    - **Sección Biometría** (cuando hay soporte de biometría en el hardware): «Activar/Desactivar desbloqueo biométrico» (`Icons.Outlined.Fingerprint`).
+    - **Línea divisoria horizontal** (`HorizontalDivider`).
+    - **Sección Salida / Cierre**: «Cerrar vault» (`Icons.AutoMirrored.Outlined.Logout`) resaltado con el color de advertencia/error (`colorScheme.error`).
+  - **Iconografía coherente**: Todos los ítems incorporan ahora su `leadingIcon` alineado a Material 3, conservando idénticas las etiquetas de accesibilidad y callbacks de navegación.
+- **Verificación**:
+  - `compileDebugKotlin` y `compileDebugAndroidTestKotlin` superados sin errores.
+  - Pruebas instrumentadas `CloudVaultContentScreenTest` (4/4) ejecutadas y aprobadas en `Pixel_9_Pro(AVD) - 15`.
+  - `testDebugUnitTest` superado al 100%.
+  - APK debug instalado y ejecutado en el emulador.
+
+## 2026-10-26 — Iconos en menú de copias y gestión de eliminación de copia en uso
+
+- **Mejoras en el menú contextual de Copias sin conexión ([CloudCopiesScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/storage/CloudCopiesScreen.kt))**:
+  - **Iconos en acciones**:
+    - «Dejar de usar esta copia» ahora cuenta con el icono `Icons.Outlined.LinkOff`.
+    - «Eliminar copia de este dispositivo» ahora cuenta con el icono `Icons.Outlined.Delete` y texto en color de error (`error`).
+  - **Gestión de eliminación de copia activa/en uso**:
+    - Se agregó el indicador visual **«En uso»** en la cabecera de la tarjeta junto al badge de «Solo lectura» cuando la copia coincide con la activa (`selected?.id == copy.id`).
+    - Si el usuario pulsa «Eliminar copia de este dispositivo» en una copia activa, en lugar de invocar `remove()` y provocar el fallo `CloudCopyProtectedException`, se despliega un diálogo explicativo:
+      *«[Archivo] está actualmente en uso como tu vault activo. Para eliminarla de este dispositivo, primero debes dejar de usarla.»*.
+    - Dicho diálogo ofrece la acción directa **«Dejar de usar y eliminar»**, la cual desvincula la referencia activa (`onDeselect()`) e inicia la confirmación de borrado, permitiendo eliminarla de forma limpia sin errores locales.
+- **Verificación**:
+  - `connectedDebugAndroidTest` (`CloudCopiesScreenTest` 3/3) ejecutado y aprobado en `Pixel_9_Pro(AVD) - 15`.
+  - `testDebugUnitTest` superado al 100%.
+  - APK debug instalado y desplegado en el emulador.
+
+## 2026-10-26 — Estilo del botón Cerrar y mensajes concisos en Detalles del archivo
+
+- **Ajustes de UI en la tarjeta modal de detalles (`OneDriveScreen.kt`)**:
+  - **Botón «Cerrar»**: Reemplazado de simple `TextButton` plano a `OutlinedButton` en píldora (`RoundedCornerShape(24.dp)`, altura de 48.dp, fondo `surfaceVariant` sutil y borde `outlineVariant`), adquiriendo el mismo peso visual, simetría y contorno de botón que «Abrir» y «Descargar».
+  - **Mensajes no redundantes y concisos**:
+    - Se eliminó el texto extenso y repetitivo.
+    - Cuando el archivo **no está descargado**: muestra la explicación directa *«Se guardará una copia cifrada en tu dispositivo para abrirla sin conexión. No altera el archivo en OneDrive.»*.
+    - Cuando el archivo **ya está descargado**: muestra la nota contextual *«Copia local cifrada disponible para abrir sin conexión.»* (evitando instruir la descarga cuando ya está en el dispositivo).
+    - Al completar la descarga: confirmación limpia y breve *«Copia descargada correctamente.»*.
+- **Verificación**:
+  - `compileDebugKotlin` y `compileDebugAndroidTestKotlin` superados sin errores ni advertencias.
+  - `testDebugUnitTest` ejecutado y aprobado al 100%.
+  - APK debug instalado y desplegado en el emulador.
+
+## 2026-10-26 — Limpieza de pantallas heredadas de OneDrive y eliminación de nota de ayuda
+
+- **Limpieza de archivos y UI**:
+  - Se eliminaron los archivos heredados `OneDriveAccountScreen.kt` y `OneDriveBrowserScreen.kt`, habiendo quedado completamente reemplazados por [OneDriveScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/storage/OneDriveScreen.kt).
+  - Se retiró la nota de ayuda al pie de la vista de OneDrive («El menú ⋮ permite cambiar de cuenta y acceder a las copias sin conexión.») tanto de [OneDriveScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/storage/OneDriveScreen.kt) como de `strings_open.xml`.
+- **Verificación**:
+  - `compileDebugKotlin` y `compileDebugAndroidTestKotlin` superados sin errores.
+  - `testDebugUnitTest` superado al 100%.
+  - APK debug instalado y desplegado en el emulador.
+
+## 2026-10-26 — Unificación y rediseño de pantallas de OneDrive (OneDriveScreen)
+
+- **Unificación de pantalla y estados según mockups**:
+  - Se unificaron [OneDriveAccountScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/storage/OneDriveAccountScreen.kt) y [OneDriveBrowserScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/storage/OneDriveBrowserScreen.kt) en [OneDriveScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/storage/OneDriveScreen.kt), adaptando la experiencia a los dos estados de cuenta y al visor de detalles:
+  - **Estado Desconectado (Mockup 1)**:
+    - Cabecera con título `OneDrive`, icono de nube a la derecha y subtítulo descriptivo «Conecta tu cuenta Microsoft para explorar y abrir tus archivos KDBX.».
+    - Tarjeta central con contenedor redondeado oscuro, icono circular de nube en acento violeta, título «Conecta tu OneDrive», subtítulo explicativo de cifrado KDBX y botón en píldora violeta «Conectar cuenta».
+  - **Estado Conectado / Explorador (Mockup 2)**:
+    - Cabecera con estado `• Cuenta Microsoft conectada` y menú overflow `⋮` con opciones directas:
+      - «Copias sin conexión»: acceso directo a la gestión de copias locales.
+      - «Comprobar acceso a OneDrive»: verificación de conectividad y permisos.
+      - «Desconectar cuenta»: diálogo de confirmación de cierre de sesión.
+    - Barra de búsqueda redondeada («Buscar archivos KDBX…») con filtrado en tiempo real y botón de limpieza rápida.
+    - Barra de navegación por migas de pan («Mis archivos › [Carpeta]») con navegación ascendente interactiva.
+    - Listado de carpetas y archivos KDBX en tarjetas con esquinas redondeadas, mosaicos de iconos violetas (`Folder`, `Lock`), metadatos en línea (tamaño y estado «Disponible en OneDrive» o «Descargado») y chevron de navegación.
+    - Nota al pie: «El menú ⋮ permite cambiar de cuenta y acceder a las copias sin conexión.».
+  - **Hoja modal de detalles del archivo (Mockup 3)**:
+    - `ModalBottomSheet` («Detalles del archivo») al pulsar cualquier archivo KDBX con cabecera e icono de información y botón de cierre `✕`.
+    - Fila de datos tabulada: Archivo, Estado (indicador verde «Descargado (Copia local disponible)» o nube «Disponible en OneDrive (No descargado)»), Tamaño, Ubicación completa con ruta, Última modificación formateada y Tipo («Base de datos KeePass (.kdbx)»).
+    - Párrafo explicativo sobre descarga en almacenamiento privado e integridad local.
+    - Progreso de descarga en vivo (`LinearProgressIndicator`), contador de bytes transferidos y gestión de incidencias de red.
+    - Botones inferiores: «Cerrar» y acción primaria dinámica:
+      - Si el archivo **ya está descargado**: botón **«Abrir»** para seleccionar la bóveda e ir directamente al desbloqueo.
+      - Si el archivo **no está descargado**: botón **«Descargar»** que realiza la transferencia con animación y pasa automáticamente a «Abrir» al finalizar.
+- **Verificación**:
+  - `connectedDebugAndroidTest` (`OpenVaultScreenTest`, `CloudCopiesScreenTest`) ejecutado y aprobado en `Pixel_9_Pro(AVD) - 15`.
+  - `testDebugUnitTest` ejecutado con éxito al 100%.
+  - APK debug instalado y desplegado en el emulador.
+
+## 2026-10-26 — Simplificación de textos en botones de Copias sin conexión
+
+- **Ajuste de etiquetas de acción**:
+  - En [CloudCopiesScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/storage/CloudCopiesScreen.kt) y [strings_open.xml](file:///d:/Projects/Android/Vaultk/app/src/main/res/values/strings_open.xml):
+    - El botón de apertura se simplificó de «Abrir copia» a **«Abrir»** (`open_copy_button`), ya que el encabezado de la pantalla ya contextualiza que son copias.
+    - El botón de sincronización en estado al día / general se simplificó de «Sincronizar ahora» a **«Sincronizar»** (`cloud_copies_sync`).
+- **Verificación**:
+  - `CloudCopiesScreenTest` (3/3) y `CloudVaultContentScreenTest` (4/4) ejecutados y aprobados en `Pixel_9_Pro(AVD) - 15`.
+  - APK debug instalado y desplegado en el emulador.
+
+## 2026-10-26 — Botón Sincronizar junto a Abrir Copia en Copias sin conexión
+
+- **Botón de Sincronización en paralelo con Abrir Copia**:
+  - En [CloudCopiesScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/storage/CloudCopiesScreen.kt), se dispuso el botón de sincronización al lado del botón principal «Abrir copia» en una fila (`Row`).
+  - **Estilos dinámicos según el estado de la copia**:
+    - **Al día (`CloudCopyState.Clean`)**: Botón en verde oscuro (`0xFF1B382B`) con borde sutil verde (`0x4044DB98`), texto e icono de nube (`Icons.Outlined.Cloud`) en verde brillante (`0xFF44DB98`) con texto «Al día».
+    - **Cambios pendientes o rearmado**: Botón en tono neutro/opaco con texto descriptivo según la acción requerida («Subir cambios pendientes», «Reconciliar con OneDrive») y estado de carga durante operaciones asíncronas.
+    - Se mantienen las acciones directas de resolución de conflictos («Conservar versión local» / «Usar versión de OneDrive») en caso de conflicto detectado.
+- **Verificación y Pruebas**:
+  - `CloudCopiesScreenTest` adaptado para el flujo del menú contextual y diálogo de confirmación de eliminación local.
+  - Ejecución exitosa de `connectedDebugAndroidTest` (`CloudCopiesScreenTest` 3/3 aprobados en `Pixel_9_Pro(AVD) - 15`).
+  - `testDebugUnitTest` ejecutado y pasando al 100%.
+  - APK debug instalado y lanzado en el emulador.
+
+## 2026-10-26 — Rediseño de OpenVault y Copias sin conexión con barra inferior persistente
+
+- **Rediseño visual de OpenVaultScreen**:
+  - Reestructurado según el mockup del usuario con encabezado `Abrir vault`, descripción «Selecciona dónde está guardado tu archivo KDBX.», divisores horizontales sutiles y secciones etiquetadas:
+    - **`DISPOSITIVO`**: Tarjeta «Archivos locales» con descripción «Explorar archivos KDBX del dispositivo».
+    - **`ALMACENAMIENTO EN LA NUBE`**: Tarjeta «OneDrive» con descripción «Explorar archivos de tu cuenta» e indicador verde con checkmark «Cuenta conectada».
+    - **`TUS VAULTS RECIENTES`**: Lista de bóvedas recientes locales y copias en la nube (`Vaultk-Test.kdbx` con tag verde `Sin cambios pendientes` o bóvedas locales con fecha/origen).
+    - **Pie de pantalla**: Botón centrado «Gestionar copias sin conexión» con icono de sincronización.
+- **Rediseño de CloudCopiesScreen («Copias sin conexión»)**:
+  - Top bar con título «Copias sin conexión» y subtítulo descriptivo.
+  - Contador de copias disponibles («COPIAS DISPONIBLES · N»).
+  - Tarjeta de copia con icono, nombre, chip de «Solo lectura», origen de OneDrive con email de la cuenta, estadísticas en línea con separador (tamaño y fecha de descarga `d MMM · h:mm a`), indicador de estado en verde («Sin cambios locales pendientes»), botón principal en píldora violeta («Abrir copia») y botón circular `⋮` para deseleccionar o eliminar copia local.
+  - Tarjeta plegable / desplegable con animación para «Registro de operaciones (N operaciones · Sin secretos)».
+- **Navegación inferior persistente**:
+  - Ambas pantallas (`OpenVaultScreen` y `CloudCopiesScreen`) integran la barra de navegación inferior `VaultkBottomNavigation` (`Vault`, `Generador`, `Ajustes`), permitiendo cambiar entre herramientas desde el selector de bóvedas.
+- Verificación: superadas todas las pruebas unitarias y de instrumentación en `Pixel_9_Pro(AVD) - 15` (`OpenVaultScreenTest` 3/3, `CloudCopiesScreenTest` 3/3, `CloudVaultContentScreenTest` 4/4). APK instalada y ejecutada en el emulador.
+
+## 2026-10-26 — 22.07 y 22.08 completadas: interfaz, ajustes de sincronización y endurecimiento
+
+- **22.07 — Interfaz y ajustes**:
+  - `PreferenceStore` (`domain`), `AppSettings` (`data`) y `ManagePreferences`
+    (`application`) incorporan las preferencias `cloudAutoSync` (por defecto
+    `true`) y `cloudAllowMetered` (por defecto `false`).
+  - Se unificaron las vistas de bóveda local y OneDrive en una única pantalla
+    (`VaultContentScreen`, eliminando la clase redundante `CloudVaultContentScreen`), de modo que las copias de OneDrive comparten exactamente la
+    misma cabecera (`Vaultk` con estado y menú `⋮` `CloseMenu`), buscador
+    (`Buscar en el vault…`), selector de grupos (`GroupPickerSheet` con creación
+    y movimiento de entradas), listado `EntryCard`, vista de detalle
+    (`EntryDetailHeader` / `EntryDetailScreen`) y barra inferior (`Vault`,
+    `Generador`, `Ajustes`), añadiendo las opciones específicas de OneDrive en
+    la tarjeta de estado y en el menú `⋮`.
+  - `SettingsScreen` añade la tarjeta «Sincronización con OneDrive» con los
+    interruptores «Sincronización automática» y «Usar datos móviles», conectada
+    con `MainActivity`.
+  - En copias de OneDrive, `VaultContentScreen` muestra el origen («OneDrive ·
+    copia privada»), el estado actual y la fecha de última sincronización
+    (`cloud_last_sync`), barra de progreso (`LinearProgressIndicator`) durante el
+    guardado y la transferencia, y las acciones «Sincronizar ahora», «Ver estado»
+    (diálogo `statusDialog` con origen, nombre, ETag base, tamaño y última
+    sincronización) y «Desvincular» (diálogo de confirmación que quita solo la
+    referencia activa sin borrar la copia local ni el archivo remoto en
+    OneDrive). Cuando la red activa es medida
+    (`ConnectivityManager.isActiveNetworkMetered`) y `cloudAllowMetered` está
+    desactivado, la sincronización automática al abrir, volver a primer plano o
+    guardar se pausa mostrando un aviso explícito y permitiendo usar
+    «Sincronizar ahora» manualmente.
+  - `OpenVaultScreen` incorpora la tarjeta directa «Copias descargadas» para
+    abrir y gestionar copias de OneDrive guardadas en el dispositivo aunque la
+    cuenta esté desconectada, sin sustituir las pantallas existentes.
+  - `OneDriveBrowserScreen` y `CloudCopiesScreen` añaden indicadores de progreso
+    de transferencia (`LinearProgressIndicator`) y `CloudCopiesScreen` incluye un
+    aviso explícito (`cloud_delete_policy_notice`) que distingue quitar la
+    referencia activa («Dejar de usar esta copia»), eliminar la copia privada del
+    dispositivo («Eliminar copia de este dispositivo») y nunca borrar el archivo
+    en OneDrive.
+- **22.08 — Pruebas y endurecimiento**:
+  - Se amplió `GraphSmallUploadVerifierTest` con
+    `expiredTokensRevokedPermissionsDeletedItemsConcurrentEditsAndTransferCutsNeverCorruptOrLoseData`
+    para verificar que tokens caducados (`401`), permisos revocados (`403`),
+    archivos eliminados (`404`), respuestas ambiguas, cortes de transferencia
+    durante descarga o reconciliación y ediciones concurrentes nunca corrompen ni
+    pierden la copia KDBX local ni dejan `uploadAttempted` bloqueado en falso,
+    comprobando además la integridad y apertura del KDBX tras descargas y
+    resoluciones de conflicto y la ausencia total de contraseñas, tokens, títulos
+    de entradas y rutas locales en `sync-log.json`.
+  - Se amplió `CloudVaultContentScreenTest` con
+    `cloudVaultShowsOriginLastSyncStatusDialogUnlinkConfirmationAndSettingsControls`
+    para verificar en UI el origen, la última sincronización, la pausa en red de
+    datos móviles, el diálogo «Ver estado», la confirmación de «Desvincular» y
+    los ajustes de OneDrive.
+- Verificación: pasaron `testDebugUnitTest` (`ArchitectureTest` y
+  `SynchronizeCloudCopyTest`) y las **33 pruebas instrumentadas** de la suite
+  cloud en `emulator-5554` (`GraphSmallUploadVerifierTest` 14/14,
+  `GraphSmallPendingUploaderTest` 4/4, `PrivateCloudCopyStoreTest` 8/8,
+  `CloudCopiesScreenTest` 3/3 y `CloudVaultContentScreenTest` 4/4). Se desinstaló
+  `com.edro08.vaultk.test` al finalizar, se mantuvo `FLAG_SECURE` activo en
+  `MainActivity` y se comprobó que las huellas SHA-256 de la copia privada
+  (`c24dcebc76a0efe581e93217915b430be94907762b577ddfdc4aa344fe4ddfe6`),
+  `record.json` y `active.json` en `emulator-5554` permanecieron intactas.
+
+## 2026-10-26 — 22.06 completada: conflictos, resolución explícita local/remota, copias de recuperación y registro sin secretos
+
+- `CloudCopy` añade `conflict: CloudCopyConflict?` (`baseEtag`, `localBytes`,
+  `localSavedAt`, `remoteEtag`, `remoteBytes`, `detectedAt`), `CloudCopyRepository`
+  incorpora `recoverySnapshots(id)` y `logs(id)`, y `CloudCopySync` /
+  `SynchronizeCloudCopy` añaden `resolveConflict(id, resolution, callback)` con
+  `CloudConflictResolution.KeepLocal` y `CloudConflictResolution.UseRemote`.
+- `PrivateCloudCopyStore` añade `stageConflictCiphertext`, `recordConflict`,
+  `resolveConflictKeepLocal`, `resolveConflictUseRemote`, `recoverySnapshots` y
+  `logs` (`sync-log.json` con escritura atómica y hasta 100 entradas de
+  `CloudSyncLogEntry` sin contraseñas, tokens, títulos ni rutas locales):
+  - Cuando `GraphSmallUploadVerifier.prepareConflict` detecta un ETag remoto
+    distinto mientras existe una copia local `Pending` (o `Conflict`), descarga y
+    verifica el `.kdbx` remoto en un nuevo blob cifrado inmutable sin sobrescribir
+    el blob `.kdbx` local, comprueba una segunda lectura de metadatos y persiste
+    `Conflict` con ambos `.kdbx` cifrados verificados en disco.
+  - Al elegir explícitamente «Usar versión de OneDrive» (`UseRemote`),
+    `resolveConflictUseRemote` verifica la firma e integridad de ambos `.kdbx` en
+    disco, conmuta el puntero activo al blob remoto y conserva el blob `.kdbx`
+    local como copia de recuperación cifrada.
+  - Al elegir explícitamente «Conservar versión local» (`KeepLocal`),
+    `resolveConflictKeepLocal` verifica ambos `.kdbx` en disco, conserva el blob
+    remoto como copia de recuperación cifrada, avanza el ETag base al ETag remoto
+    inspeccionado y ejecuta la subida condicional + verificación del `.kdbx` local.
+- `CloudVaultContentScreen` y `CloudCopiesScreen` muestran la comparación de
+  versiones en conflicto y los botones explícitos «Conservar versión local» y
+  «Usar versión de OneDrive» (sin fusión automática), además del contador de
+  copias de recuperación cifradas y la sección «Registro de operaciones (sin
+  secretos)» en `CloudCopiesScreen`.
+- Verificación: pasaron `testDebugUnitTest` (`ArchitectureTest` y
+  `SynchronizeCloudCopyTest`) y las **31 pruebas instrumentadas** en
+  `emulator-5554` (`GraphSmallUploadVerifierTest` 13/13,
+  `GraphSmallPendingUploaderTest` 4/4, `PrivateCloudCopyStoreTest` 8/8,
+  `CloudCopiesScreenTest` 3/3 y `CloudVaultContentScreenTest` 3/3), retirando
+  `com.edro08.vaultk.test` al finalizar.
+
+## 2026-10-26 — 22.05 completada: sincronización bidireccional sin descartar ediciones locales
+
+- `CloudSyncOutcome` añade `UpToDate` y `Downloaded`, y `CloudCopySync` /
+  `SynchronizeCloudCopy` incorporan `refresh(id)` junto a `synchronize(id)` y
+  `reconcile(id)`.
+- `PrivateCloudCopyStore` añade `readCopy`, `stageRemoteCiphertext`,
+  `commitStagedRemoteClean` y `discardStagedRemoteCiphertext`: descarga y
+  verifica el nuevo `.kdbx` cifrado en un archivo temporal privado fuera del
+  bloqueo de sincronización y solo conmuta `record.json` si la copia sigue
+  `Clean` en el `expectedBaseEtag` original, conservando los blobs `.kdbx`
+  previos. Si el usuario guarda un cambio local (`Pending`) durante la descarga,
+  `commitStagedRemoteClean` descarta únicamente el archivo en staging y protege
+  la edición local.
+- `GraphSmallUploadVerifier` incorpora `refresh` (solo `GET`) y
+  `checkBeforeUpload`:
+  - En copias `Clean`, `refresh` consulta el ETag remoto; si coincide tras dos
+    lecturas devuelve `UpToDate`, y si cambió descarga el ciphertext desde la URL
+    HTTPS preautorizada sin bearer, comprueba tamaño y cabecera KDBX, confirma
+    una segunda lectura de metadatos y promueve la nueva versión (`Downloaded`).
+  - En copias `Pending`, nunca descarga encima de la copia local: si
+    `uploadAttempted == true` delega en `reconcile`; si `uploadAttempted == false`,
+    `refresh` y `checkBeforeUpload` comprueban el ETag remoto antes de reclamar o
+    enviar `PUT /content`, devolviendo `Conflict` si el remoto cambió o
+    `StillPending` (sin activar `uploadAttempted`) si no hay red.
+- `CloudVaultContentScreen` y `CloudCopiesScreen` presentan los estados
+  sincronizado, pendiente, sincronizando, error y conflicto, añaden la acción
+  manual «Sincronizar ahora» en copias `Clean`, y con `autoSync = true` en
+  `MainActivity` sincronizan automáticamente al abrir la bóveda, al regresar a
+  la aplicación (`ON_START`, recargando la bóveda abierta en memoria tras
+  `Downloaded`) y al guardar cambios locales (`persistChange`).
+- Verificación: pasaron `testDebugUnitTest` (`ArchitectureTest` y
+  `SynchronizeCloudCopyTest`) y las **29 pruebas instrumentadas** de la suite
+  cloud en `emulator-5554` (`GraphSmallUploadVerifierTest` 12/12,
+  `GraphSmallPendingUploaderTest` 4/4, `PrivateCloudCopyStoreTest` 8/8,
+  `CloudCopiesScreenTest` 2/2 y `CloudVaultContentScreenTest` 3/3), retirando
+  `com.edro08.vaultk.test` al finalizar.
+
+## 2026-10-26 — 22.04c completada: reconciliación explícita, pruebas de cortes y edición cloud en copias elegibles
+
+- `CloudCopy` expone `uploadAttempted` y `CloudCopySync`/`SynchronizeCloudCopy`
+  incorporan `reconcile` con resultado `Rearmed` además de `Verified`, `Conflict`,
+  `Missing` y `StillPending`, manteniendo separados el envío único (`synchronize`)
+  y la reconciliación por lectura (`reconcile`). `ManageCloudCopies` añade
+  `openVersioned` para conservar la llave en memoria mientras la copia permanece
+  abierta y poder cifrar cambios locales con `SaveCloudCopyLocally`.
+- `PrivateCloudCopyStore` impone el límite de ruta pequeña (`250_000_000` bytes)
+  en `savePending`, persiste `attemptedBlob` junto a `uploadAttempted` al
+  reclamar la subida y lo conserva si el usuario guarda otra edición local
+  (`savePending`) antes de reconciliar. Añadidos `withAttemptedPendingSnapshot`,
+  `rearmUncommittedPendingUpload` y `advanceAttemptedPendingBase` con CAS de
+  estado, ETag base y huellas SHA-256, sin borrar ningún blob `.kdbx` previo.
+- `GraphSmallUploadVerifier.reconcile` consulta Graph exclusivamente mediante
+  `GET` (sin reenviar `PUT` ni enviar bearer al CDN):
+  - Si el ciphertext remoto coincide por SHA-256 con el `Pending` actual entre
+    dos lecturas de metadatos coherentes, completa la transición a `Clean`.
+  - Si dos lecturas de metadatos confirman que OneDrive sigue en el ETag base,
+    rearma `uploadAttempted = false` sin ejecutar subida automática.
+  - Si hubo una edición local posterior y el remoto coincide por SHA-256 con
+    `attemptedBlob` entre dos lecturas de metadatos, avanza el ETag base de la
+    copia `Pending` actual al ETag remoto verificado y rearma `uploadAttempted = false`,
+    conservando en disco los tres snapshots cifrados (`Clean`, `attemptedBlob` y
+    `Pending` actual).
+  - Si el ETag remoto cambió a otro contenido/tamaño o devuelve `404`, informa
+    `Conflict` o `Missing` y conserva `Pending` bloqueado (`uploadAttempted = true`).
+    Cualquier corte de red, descarga truncada o cambio entre lecturas devuelve
+    `StillPending`.
+- `CloudCopiesScreen` y `CloudVaultContentScreen` distinguen visualmente `Clean`,
+  `Pending` sin intento previo («Subir cambios pendientes» → `synchronize`),
+  `Pending` con intento sin confirmar («Reconciliar con OneDrive» → `reconcile`)
+  y `Conflict`, con mensajes explícitos para `Verified`, `Rearmed`, `Conflict`,
+  `Missing` y `StillPending`. `CloudVaultContentScreen` habilita crear, editar,
+  duplicar y eliminar entradas solo para copias elegibles por la ruta pequeña
+  (≤250.000.000 bytes y sin conflicto), persistiendo exclusivamente en
+  `PrivateCloudCopyStore` como `Pending`; conserva modo solo lectura cuando no
+  es elegible. Las sesiones de carga siguen deshabilitadas.
+- Verificación: pasaron `testDebugUnitTest` (`ArchitectureTest` y
+  `SynchronizeCloudCopyTest`), `:app:packageDebug --rerun-tasks` (APK sin flag
+  `testOnly`), `assembleDebugAndroidTest` y las **26 pruebas instrumentadas** en
+  `emulator-5554` (`GraphSmallUploadVerifierTest` 10/10 incluyendo cortes en
+  cada paso de `upload`, `verify` y `reconcile` con reinicio de almacén,
+  `GraphSmallPendingUploaderTest` 4/4, `PrivateCloudCopyStoreTest` 8/8,
+  `CloudCopiesScreenTest` 2/2 y `CloudVaultContentScreenTest` 2/2). Además se
+  ejecutó contra Graph real en `emulator-5554` la prueba opt-in
+  `GraphConditionalWriteExperimentTest#syntheticKdbxInterruptedAttemptReconcilesWithRealGraphWithoutSecondPut`
+  (`OK (1 test)`), validando subida condicional de un `.kdbx` sintético, corte
+  previo a `verify`, bloqueo de segundo `PUT` y reconciliación por `GET` a
+  `Clean` antes de borrar el archivo sintético remoto y desinstalar
+  `com.edro08.vaultk.test`. Se verificó interactivamente en `emulator-5554` el
+  desbloqueo y navegación de `CloudVaultContentScreen` y `EntryFormScreen`, tras
+  lo cual se restauró `FLAG_SECURE` en `MainActivity` y se dejó instalada la APK
+  actualizada con las huellas de `Vaultk-Test-verificacion-2026-10-24.kdbx` y
+  `record.json` intactas.
+
+## 2026-10-24 — 22.04c motor pequeño: confirmación remota y conflictos validados
+
+- `GraphSmallUploadVerifier` consulta ID/unidad/ETag/tamaño antes y después de
+  descargar el KDBX remoto cifrado por URL preautorizada sin bearer; compara
+  SHA-256 de los bytes exactos con el blob privado. No sigue redirecciones
+  adicionales y rechaza URL insegura. Solo tras coincidencia completa,
+  `PrivateCloudCopyStore.completeVerifiedSmallUpload` conmuta el registro
+  `Pending` a `Clean` de forma atómica bajo comprobación de ETag base y huella;
+  conserva los blobs cifrados previos. Cualquier fallo deja `Pending`.
+- Antes de salir a Graph, `claimSmallPendingUpload` registra en `record.json`
+  un intento durable. Tras reinicio, otra llamada de subida sobre el mismo
+  `Pending` queda bloqueada, incluso si el resultado anterior fue incierto.
+  Un nuevo guardado local explícito puede preparar una versión nueva, **sin
+  rearmar** una subida ya intentada; requiere reconciliación antes de volver
+  a enviar. Prueba Android sintética de esta propiedad superada. Se ensambló
+  `SynchronizeCloudCopy` en `application`, con MSAL/token en `data` y resultado
+  sin secretos; **ninguna pantalla lo invoca todavía**.
+- Pruebas JVM y ocho pruebas Android con Graph simulado pasaron: comprobación
+  doble de ETag, huella y cuenta, rechazo de redirección insegura, respuestas
+  ambiguas, CAS local y persistencia del bloqueo de segundo intento.
+- En Honor, pruebas opt-in manuales con **dos KDBX generados** y nombres UUID:
+  (1) subida condicional, verificación del ciphertext remoto, transición
+  persistente a `Clean` y preservación del blob anterior; (2) cambio remoto
+  después de `savePending`, respuesta `412`, bytes remotos ajenos intactos,
+  KDBX local `Pending` intacto y segundo intento bloqueado. Se borraron solo
+  los archivos de prueba recién creados y se retiró el APK de instrumentación.
+  La APK principal sigue instalada; huellas del KDBX privado del usuario,
+  `record.json` y `active.json` idénticas antes/después.
+- **Aún no completar 22.04c ni habilitar edición cloud:** falta UX de
+  `Pending`/conflictos/reconciliación, pruebas de cortes en cada paso y confirmar
+  comportamiento en cuentas de trabajo. Sesiones de carga siguen bloqueadas;
+  solo hay ruta pequeña (≤250.000.000 bytes) observada en esta cuenta.
+
+## 2026-10-24 — 22.04b: adaptador de carga pequeña, todavía sin UI
+
+- `GraphSmallPendingUploader` (solo `data`) realiza **una** solicitud `PUT
+  /drives/{drive}/items/{item}/content` con `If-Match` del ETag base y el
+  ciphertext privado `Pending`, tras comprobar identidad de la cuenta.
+  `PrivateCloudCopyStore.withSmallPendingCiphertext` mantiene estable el blob
+  durante el intento y lo verifica antes/después. Límite conservador
+  250.000.000 bytes; archivos mayores no se envían por esta ruta.
+- `412` → conflicto informado; `404` → elemento ausente; fallos de red, otras
+  respuestas o metadatos incompletos/incoherentes → incierto. Un 2xx con ID,
+  unidad, tamaño y ETag nuevos coherentes devuelve **solo**
+  `AwaitingVerification`: ni actualiza ETag base ni cambia `Pending` a `Clean`.
+  No hay reintentos automáticos ni envío de contraseña a Microsoft. Sesiones
+  de carga siguen excluidas por su control positivo fallido (`400`).
+- Compilación debug, JVM y Android con dobles Graph: cuatro pruebas de
+  encabezados, contenido cifrado exacto, identidad y estados ambiguos pasaron.
+  APK principal actualizada mediante `install -r`, test APK retirado. KDBX
+  privado, `record.json` y `active.json` del vault restaurado mantienen las
+  mismas huellas; la app sigue instalada. **No hay llamada desde MSAL/UI al
+  adaptador** ni escritura sobre el vault del usuario. Próxima fase: 22.04c,
+  confirmación remota y promoción durable a `Clean` solo tras verificar bytes.
+
+## 2026-10-24 — 22.04b: ensayo controlado retomado sin desinstalar Vaultk
+
+- El usuario restauró y seleccionó `Vaultk-Test-verificacion-2026-10-24` en
+  Honor. Se registraron huellas de su KDBX privado, metadatos y selección; el
+  experimento **no abrió ni modificó** ese archivo. Se compilaron y ejecutaron
+  pruebas opt-in manualmente con `adb install -r` del APK de test y
+  `adb shell am instrument`, sin ejecutar el ciclo de instalación/desinstalación
+  de Gradle. Solo se crearon/eliminaron archivos `.txt` con UUID en OneDrive.
+- En esta cuenta, `PUT /content` con `If-Match` obsoleto respondió `412` y
+  conservó `C`; con el ETag vigente reemplazó el mismo ID, cambió el ETag y
+  entregó exactamente los bytes de `B`.
+- `createUploadSession` con ETag obsoleto respondió `412`. Con `deferCommit`
+  el fragmento final devolvió `202` sin publicar `B`; tras un cambio remoto,
+  el intento de commit por ID con `sourceUrl`/`If-Match` devolvió `412` y
+  conservó `D`. Sin embargo, el **control positivo falló con `400 invalidRequest`**
+  al repetir esa sintaxis con el ETag correcto. No considerar seguro ni
+  implementable ese commit; el `412` por sí solo es insuficiente.
+- Verificación posterior: las tres huellas del almacenamiento privado de la
+  copia del usuario coinciden con las previas y `com.edro08.vaultk` sigue
+  instalada; se eliminó solo `com.edro08.vaultk.test`. No se instaló una APK
+  principal anterior ni se perdieron datos en esta tanda. **Edición cloud
+  sigue deshabilitada**. El camino pequeño aún requiere un adaptador sin
+  reintentos ciegos y 22.04c; para sesiones falta una ruta de commit válida
+  tanto en control positivo como en conflicto.
+
+## 2026-10-24 — Ensayo real 22.04b con archivos sintéticos
+
+- Se añadió `GraphConditionalWriteExperimentTest` opt-in en `data/androidTest`,
+  con adquisición silenciosa de token MSAL, archivos de prueba con UUID,
+  eliminación de esos archivos en `finally`, sin bearer en la URL de sesión ni
+  logs de secretos. No forma parte de la suite normal.
+- En Honor, la prueba de `PUT /content` con ETag inicial obsoleto pasó: Graph
+  devolvió `412`, el ID, ETag y contenido `C` siguieron intactos y se eliminó
+  el archivo sintético. Esto prueba el rechazo observado para esta cuenta, no
+  la semántica universal ni una carrera durante el PUT.
+- La prueba de sesión **no se ejecutó**: `getCurrentAccountAsync` de MSAL
+  devolvió «No account» antes de crear archivos. Se constató después que
+  `connectedDebugAndroidTest` había desinstalado la app en el Honor, **borrando
+  los datos privados de Vaultk**, incluidas las copias offline y sesión MSAL.
+  Se reinstaló la APK actual y se verificó que `files/` solo contenía
+  `profileInstalled`; los datos privados anteriores no se recuperaron. El
+  KDBX de OneDrive no fue modificado, pero debe volver a iniciarse sesión y
+  descargar las copias. Se añadió bloqueo explícito a tareas `connected*AndroidTest`
+  sin `-Pvaultk.allowDestructiveConnectedTests=true`; en adelante usarlas solo
+  en emulador/dispositivo desechable. **No repetirlas en el Honor. 22.04b y la
+  edición cloud siguen bloqueadas.**
+
+## 2026-10-24 — Investigación 22.04b: confirmación condicional aún no demostrada
+
+- Revisadas las referencias oficiales de `PUT /content` y
+  `createUploadSession` de Microsoft Graph v1.0. La primera no documenta
+  `If-Match`; la segunda lo documenta al crear la sesión, pero no garantiza en
+  esa sección que se vuelva a comprobar al publicar el último fragmento.
+  `deferCommit` ofrece cierre explícito y hay un ejemplo de `sourceUrl` con
+  `If-Match`, pero no prueba que el ETag se compare atómicamente con el archivo
+  original por ID en los dos tipos de cuenta.
+- Se escribió `agents/specs/onedrive-subida-condicional.md` con una prueba
+  controlada A/B/C, comprobación del ID y contenido, y criterios de bloqueo por
+  tipo de cuenta/ruta de carga. **22.04b sigue bloqueada** hasta ejecutar y
+  documentar esa prueba real con archivos sintéticos. No se introdujo una ruta
+  de escritura Graph ni se modificó el KDBX del usuario. Edición cloud sigue
+  deshabilitada; no confundir comprobación previa con protección atómica.
+
+## 2026-10-24 — OneDrive 22.04a: guardado privado Pending sin red ni edición
+
+- `CloudCopyRepository` dispone de apertura versionada y `savePending`.
+  `SaveCloudCopyLocally` ejecuta este contrato en IO; `VaultkGraph` lo ensambla,
+  pero **ninguna pantalla lo invoca** todavía. La copia OneDrive sigue siendo
+  de solo lectura y no existe petición Graph de escritura.
+- `PrivateCloudCopyStore` comprueba la huella esperada del KDBX cifrado,
+  reutiliza `KdbxWriter` (sales/IV nuevos), escribe otro blob privado
+  inmutable y sincronizado, verifica su hash y descifrado con la llave local,
+  y solo entonces conmuta de forma atómica el registro a `Pending`. Conserva
+  ETag base y blob anterior. Ante fallo ambiguo del registro, conserva el
+  ciphertext para no borrar una posible versión ya referenciada.
+- Pasaron `assembleDebug`, pruebas JVM y Android con KDBX sintético: reapertura
+  tras recrear repositorio, ETag base intacto, edición pendiente, versión
+  anterior preservada, huella obsoleta/llave incorrecta rechazadas, y bloqueo
+  de borrado y descarga sobre Pending. Se repitió la compilación y las pruebas
+  con `--rerun-tasks`, corrigiendo dobles de prueba desactualizados que el
+  caché incremental no había recompilado. APK actualizada y abierta en Honor
+  sin borrar datos; no se usó ni modificó el KDBX del usuario.
+- Próximo corte 22.04b: verificar en documentación y pruebas reales las
+  precondiciones atómicas de Graph antes de habilitar cualquier edición remota.
+
+## 2026-10-24 — OneDrive 22.03 validada: caché offline y gestión de copias
+
+- El usuario confirmó que funciona el flujo de gestión de copias en Honor tras
+  probar 22.03d. Ya había confirmado apertura de la copia en modo solo lectura
+  con la conexión desactivada. Con las pruebas instrumentadas aisladas de
+  borrado protegido y confirmación, 22.03a–d quedan validadas.
+- Eliminar una copia actúa solo sobre el almacenamiento privado de este
+  dispositivo; no existe operación DELETE a Graph. Las copias pendientes,
+  en conflicto, seleccionadas o no verificables quedan protegidas.
+- Siguiente subfase: 22.04, guardado privado durable y subida condicionada por
+  ETag. No habilitar edición remota hasta completar protección de conflictos.
+
+## 2026-10-24 — OneDrive 22.03d: gestión y borrado local implementados
+
+- `CloudCopiesScreen` muestra nombre, cuenta cuando se conoce, tamaño, fecha y
+  estado. Permite seleccionar, «Dejar de usar esta copia» sin eliminarla y,
+  solo para copias limpias no seleccionadas, «Eliminar copia de este dispositivo»
+  con confirmación que aclara que OneDrive no se borra.
+- `PrivateCloudCopyStore.remove` vuelve a verificar selección, estado, tamaño,
+  firma y contenido conocido del directorio bajo exclusión mutua. Rechaza
+  copias seleccionadas, pendientes, en conflicto o ambiguas. Renombra el
+  directorio de forma atómica a una marca privada antes de eliminar solo los
+  blobs y metadatos reconocidos; nunca invoca Graph. Un fallo de limpieza puede
+  dejar bytes cifrados en una marca privada para recuperación, no una copia
+  visible parcialmente borrada. Las descargas nuevas guardan nombre de cuenta
+  en metadatos privados; las anteriores muestran cuenta no identificada.
+- Compilación, suite JVM y pruebas Android con fixtures aislados correctas:
+  confirmación/cancelación, cuenta distinta conservada, protección de selección
+  y estado pendiente, rechazo de datos desconocidos. APK debug actualizada y
+  abierta en Honor sin borrar datos; no se eliminó la copia del usuario.
+  **Pendiente:** validar manualmente con una copia desechable
+  antes de declarar completa 22.03d.
+
+## 2026-10-24 — OneDrive 22.03c validada offline en Honor
+
+- Tras la prueba manual del usuario, Vaultk aparece como actividad activa y
+  Android informa `SECURE` en su ventana. La captura ADB falló y no se intentó
+  eludir `FLAG_SECURE`; no se vio contenido ni se leyó el KDBX. En el flujo
+  actual el flag se activa al tener una bóveda abierta, pero esta observación
+  por sí sola no confirma el contenido mostrado ni que la red estuviera apagada.
+- El usuario confirmó que ve los grupos y entradas de la copia; la apertura
+  de solo lectura en Honor queda validada. Confirmó además que la conexión
+  estaba desactivada antes de desbloquearla: apertura offline validada.
+  Siguiente paso en orden: 22.03d, inventario y eliminación local segura.
+  Sin cambio de código.
+
+## 2026-10-24 — OneDrive 22.03c: apertura offline de solo lectura pendiente de validación manual
+
+- `PrivateCloudCopyStore` abre desde `filesDir/onedrive-copies` con `KdbxReader`,
+  sin copiar texto claro al disco ni exponer rutas a la UI. Comprueba tamaño y
+  huella de la copia cifrada antes/después de leer; una llave errónea no cambia
+  el archivo. Una selección activa de cuenta/unidad/elemento sobrevive al
+  reinicio y permite elegir una copia sin conexión, incluso desconectado de MSAL.
+- `MainActivity` separa la selección cloud de recientes locales. La pantalla de
+  desbloqueo existente acepta la copia y biometría por referencia estable; la
+  vista `CloudVaultContentScreen` permite consultar grupos y entradas, pero
+  no tiene edición ni callback de guardado. `FLAG_SECURE`, bloqueo por inactividad
+  y limpieza de secretos siguen activos. Al seleccionar vault local se desactiva
+  únicamente el marcador de selección cloud, sin borrar la copia.
+- Pasaron `assembleDebug`, suite JVM y pruebas Android con un KDBX sintético
+  real: persistencia tras recrear repositorio, apertura offline, rechazo de
+  llave incorrecta, archivo sin cambios y UI sin edición. APK actualizada,
+  abierta y proceso activo en Honor sin borrar datos. Falta validar en Honor
+  con la copia de prueba existente, sin enviar la llave a nadie. 22.03d (borrado
+  local explícito) y 22.04 (guardado condicional) siguen pendientes.
+
+## 2026-10-24 — OneDrive 22.03b validada en Honor con copia de prueba
+
+- El usuario repitió la descarga de «Vault - copia.kdbx» en la APK actual y
+  apareció «Descarga completa». Se verificó por ADB `run-as` solo la existencia
+  de un KDBX privado cifrado y `record.json` en `files/onedrive-copies`, sin
+  leer ninguno de los dos archivos ni abrir el KDBX. Se eliminaron las capturas
+  temporales. La copia previa de `cacheDir` y el original no se tocaron.
+- 22.03b queda validada para promoción y persistencia. La autenticidad completa
+  del KDBX no está comprobada hasta 22.03c, y no existe aún edición remota ni
+  botón para borrar copias. Próximo corte: apertura offline de prueba.
+
+## 2026-10-24 — OneDrive 22.03b: nuevas descargas a inventario persistente
+
+- `GraphDriveBrowser` ahora publica una descarga completa mediante
+  `CloudCopyRepository` en `filesDir/onedrive-copies`, con ID de cuenta,
+  unidad/elemento, ETag, tamaño, fecha y estado `Clean`. El temporal de esta
+  operación se elimina tras promocionar; las descargas anteriores de 22.02
+  en `cacheDir` **no se migran ni se borran**.
+- Si existe copia `Pending` o `Conflict`, `PrivateCloudCopyStore` rechaza la
+  promoción sin sustituir su archivo ni metadatos. Se presenta un mensaje
+  específico. El almacenamiento sigue siendo privado y excluido de backup;
+  no se permite abrir ni editar la copia todavía.
+- Pasan compilación, pruebas JVM e instrumentadas con Graph simulado y bytes
+  sintéticos: promoción, inventario por cuenta, rechazo de reemplazo pendiente,
+  ETag cambiado, URL insegura y ausencia de token en CDN. APK debug actualizada
+  y abierta en Honor sin borrar datos. Pendiente validar una **nueva** descarga
+  real de prueba; después sigue 22.03c.
+
+## 2026-10-24 — OneDrive 22.03a: base de inventario privado, sin activar flujo
+
+- El plan 22.03a–d quedó detallado en `agents/specs/fases.md`: primero
+  persistencia e identidad, luego promoción de descargas, apertura offline y
+  por último eliminación local segura. Borrar una copia nunca borra OneDrive;
+  se bloqueará con cambios pendientes, conflicto o estado incierto.
+- Añadidos `CloudCopy`/`CloudCopyRepository` al dominio,
+  `ManageCloudCopies` en aplicación y `PrivateCloudCopyStore` en data,
+  ensamblados en `VaultkGraph`. La identidad usa cuenta/unidad/elemento,
+  no ruta o nombre. Los KDBX cifrados se guardan en `filesDir/onedrive-copies`
+  con nombre aleatorio y puntero de metadatos atómico; un fallo deja como mucho
+  un blob cifrado huérfano y nunca reemplaza una copia pendiente. No se
+  migró ni tocó la descarga previa en `cacheDir`.
+- Pasan compilación, pruebas JVM y pruebas Android aisladas con bytes sintéticos
+  (persistencia, cuentas separadas, escritura corta y rechazo de cambios
+  pendientes). APK debug actualizada y abierta en Honor conservando datos.
+  **Aún no está conectada la descarga a este almacén, ni hay
+  apertura offline o interfaz para eliminar copias.** Siguiente: 22.03b.
+
+## 2026-10-24 — OneDrive 22.02 validada en Honor con copia de prueba
+
+- El usuario descargó «Vault - copia.kdbx» desde el explorador de OneDrive.
+  Se comprobó visualmente el mensaje «Descarga completa ... en almacenamiento
+  privado». Se corrigió previamente el rechazo del host CDN; la respuesta
+  real completó comprobaciones de tamaño, firma y ETag. Se eliminó la captura
+  temporal de diagnóstico; no se tocó el KDBX original ni se abrió el descargado.
+- 22.02 completada para exploración y descarga preliminar. Pendiente 22.03:
+  apertura KDBX verificada con llave, persistencia de caché cifrada offline,
+  asociación durable de cuenta/unidad/elemento/ETag y biometría por referencia.
+
+## 2026-10-24 — OneDrive 22.02: corregido rechazo de CDN de descarga
+
+- La repetición controlada en Honor mostró el diagnóstico «servidor de descarga
+  no coincide con los dominios admitidos»: el listado y los metadatos funcionan,
+  pero la lista fija de hosts rechazaba la URL temporal entregada por Graph.
+- Se eliminó la lista frágil de dominios. Solo se acepta la URL de la respuesta
+  inmediata de `GET /content` en Graph por HTTPS sin credenciales en la URL,
+  fragmentos ni puertos no estándar; la petición al CDN no lleva token OAuth
+  y no sigue redirecciones adicionales. No se registran ni muestran URLs.
+- Pasaron compilación, pruebas JVM y pruebas Android simuladas de URL HTTP
+  rechazada, CDN HTTPS sin bearer y bloqueo de segunda redirección. APK debug
+  actualizada y abierta en Honor sin borrar datos. **Pendiente:** repetir con un
+  KDBX de prueba; no se ha confirmado todavía una descarga real completa.
+
+## 2026-10-24 — OneDrive 22.02: diagnóstico seguro de fallo en descarga real
+
+- El usuario mostró un error de descarga en Honor: el explorador lista archivos,
+  pero la UI anterior agrupaba todos los fallos en un único mensaje. No se
+  repitió la descarga ni se consultaron tokens, URLs o contenido del KDBX.
+- Se clasifican sin detalles sensibles los fallos de metadatos, redirección,
+  dominio, transferencia, tamaño, cabecera, cambio de versión y almacenamiento.
+  La UI muestra el motivo en el siguiente intento con un archivo de prueba.
+- Pasaron `assembleDebug`, pruebas JVM y pruebas Android simuladas tras el
+  cambio. APK debug actualizada y abierta en Honor sin borrar datos. La causa
+  concreta de la descarga anterior **sigue sin determinarse**; 22.02 no se da
+  por validada en OneDrive real.
+
+## 2026-10-24 — OneDrive 22.02: explorador y descarga en espera de prueba real
+
+- Añadido explorador desde la cuenta conectada: enumera carpetas y solo archivos
+  `.kdbx`, paginados, identificados por unidad e ID del elemento; sin usar
+  rutas ni nombres como identidad. Navegación y errores visibles en UI.
+- La descarga consulta metadatos, sigue solo una redirección HTTPS de dominio
+  Microsoft sin reenviar el token, muestra bytes transferidos y comprueba
+  longitud, firma KDBX y que el ETag/tamaño no hayan cambiado antes de publicar
+  el temporal en `cacheDir/onedrive-staging`. Sigue siendo una copia KDBX
+  cifrada, no un vault local editable ni una caché offline durable: 22.03 debe
+  añadir apertura, verificación criptográfica KDBX con la llave, persistencia
+  privada y metadatos de referencia.
+- Pasaron compilación, pruebas JVM y pruebas Android con respuestas Graph
+  simuladas (listado, descarga, rechazo de host no confiable y cambio de ETag).
+  APK debug actualizada y abierta en Honor mediante instalación conservando datos.
+  **Pendiente:** comprobar listado y descarga con un KDBX de prueba controlado
+  en OneDrive real. No se abrió, editó ni descargó el KDBX del usuario.
+
+## 2026-10-24 — OneDrive 22.01 completada: acceso Graph validado en Honor
+
+- Añadida comprobación explícita en la pantalla de cuenta: MSAL adquiere en
+  silencio el token `Files.ReadWrite` de la cuenta activa y `data` consulta
+  `GET /v1.0/me/drive?$select=id`. Solo se comprueba HTTP 200; no se leen
+  nombres, contenido de archivos ni se escriben datos en OneDrive. El token
+  no sale de `data`, y la UI solo muestra éxito o fallo sin detalles sensibles.
+- La llamada de red tiene tiempos límite y no sigue redirecciones; pruebas JVM
+  cubren la ruta, el método, el encabezado, los tiempos límite y respuestas de
+  error. Pasan `assembleDebug`, `testDebugUnitTest` y compilación androidTest.
+- El usuario confirmó previamente la recuperación de sesión y la desconexión.
+  APK debug actualizada mediante `adb install -r` y abierta en Honor, sin borrar
+  datos. El usuario pulsó «Comprobar acceso a OneDrive» en Honor y obtuvo
+  «Acceso a OneDrive confirmado»: la llamada real a Graph devolvió HTTP 200
+  con el permiso consentido. 22.01 completada. No se tocó ningún KDBX;
+  exploración, descarga y guardado remoto corresponden a 22.02–22.04.
+
+## 2026-10-24 — OneDrive 22.01: integración de identidad pendiente de prueba real
+
+- Registro Microsoft configurado por el usuario en Entra ID Free para Android
+  debug con `Files.ReadWrite` delegado y `User.Read`; no se activó P2 ni
+  consentimiento de administrador. La firma SHA-1 de la APK instalada coincide
+  con la configurada en el redirect. Client ID público en `res/raw/msal_config.json`.
+- MSAL 8.6.0 usa modo de cuenta única y autoridad `common` para cuentas
+  personales y de trabajo. `domain.CloudAccountSession` y
+  `application.ManageCloudAccount` aíslan al adaptador `data.MsalCloudAccountSession`;
+  la UI permite conectar, recuperar la cuenta y desconectar. No muestra
+  explorador ni afirma que pueda abrir bóvedas remotas antes de 22.02.
+- Deshabilitados backup y transferencia de datos privados para evitar copiar
+  tokens/credenciales/una futura caché cifrada a través de Android Backup.
+- Pasan `assembleDebug`, `testDebugUnitTest`, compilación androidTest y las
+  pruebas instrumentadas de inicialización MSAL y pantalla de selector.
+  APK de depuración instalada y abierta en Honor. El usuario completó el inicio
+  de sesión interactivo y se comprobó visualmente el estado «Cuenta conectada»
+  en el teléfono, sin capturar ni almacenar tokens. En este corte aún faltaban
+  recuperación de sesión, desconexión y llamada Graph; quedaron validadas en
+  el corte posterior, documentado arriba. No se tocó el KDBX del usuario.
 
 ## 2026-10-24 — Recientes sin dependencias UI→data
 

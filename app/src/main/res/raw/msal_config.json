@@ -1,0 +1,15 @@
+{
+  "client_id": "4074d204-4730-423e-9524-e1b2f3627e68",
+  "redirect_uri": "msauth://com.edro08.vaultk/szz51MFkE4E8bJ9eeUBaZCbSwxc%3D",
+  "broker_redirect_uri_registered": true,
+  "account_mode": "SINGLE",
+  "authorities": [
+    {
+      "type": "AAD",
+      "audience": {
+        "type": "AzureADandPersonalMicrosoftAccount",
+        "tenant_id": "common"
+      }
+    }
+  ]
+}

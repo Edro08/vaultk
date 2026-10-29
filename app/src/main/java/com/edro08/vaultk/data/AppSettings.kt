@@ -24,4 +24,12 @@ class AppSettings(context: Context) : com.edro08.vaultk.domain.AppPreferenceStor
         get() = runCatching { FileAccessMode.valueOf(preferences.getString("file_access_mode", "Standard") ?: "Standard") }
             .getOrDefault(FileAccessMode.Standard)
         set(value) { preferences.edit().putString("file_access_mode", value.name).apply() }
+
+    override var cloudAutoSync: Boolean
+        get() = preferences.getBoolean("cloud_auto_sync", true)
+        set(value) { preferences.edit().putBoolean("cloud_auto_sync", value).apply() }
+
+    override var cloudAllowMetered: Boolean
+        get() = preferences.getBoolean("cloud_allow_metered", true)
+        set(value) { preferences.edit().putBoolean("cloud_allow_metered", value).apply() }
 }

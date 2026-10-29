@@ -1,6 +1,5 @@
 package com.edro08.vaultk
 
-import android.net.Uri
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -12,7 +11,7 @@ import androidx.compose.runtime.setValue
 import com.edro08.vaultk.domain.VaultDocument
 import com.edro08.vaultk.ui.uri
 import com.edro08.vaultk.domain.FileAccessMode
-import com.edro08.vaultk.ui.screen.OpenVaultScreen
+import com.edro08.vaultk.ui.screen.storage.OpenVaultScreen
 import com.edro08.vaultk.ui.theme.VaultkTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -30,11 +29,11 @@ class OpenVaultScreenTest {
         } }
         compose.onNodeWithText("Acceso completo · Almacenamiento compartido").assertDoesNotExist()
         compose.onNodeWithText("Abrir un archivo .kdbx con el selector de Android.").assertDoesNotExist()
-        compose.onNodeWithText("Explorar carpetas del almacenamiento compartido.").assertIsDisplayed()
-        compose.onNodeWithText("Dispositivo").performClick()
+        compose.onNodeWithText("Explorar archivos KDBX del dispositivo").assertIsDisplayed()
+        compose.onNodeWithText("Archivos locales").performClick()
         compose.runOnIdle { mode = FileAccessMode.Full }
-        compose.onNodeWithText("Explorar carpetas del almacenamiento compartido.").assertIsDisplayed()
-        compose.onNodeWithText("Dispositivo").performClick()
+        compose.onNodeWithText("Explorar archivos KDBX del dispositivo").assertIsDisplayed()
+        compose.onNodeWithText("Archivos locales").performClick()
         compose.runOnIdle { assertEquals(2, opened) }
     }
 

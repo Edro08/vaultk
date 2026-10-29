@@ -1,4 +1,4 @@
-package com.edro08.vaultk.ui.screen
+package com.edro08.vaultk.ui.screen.storage
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.clickable
@@ -15,6 +15,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +36,7 @@ import com.edro08.vaultk.R
 import com.edro08.vaultk.application.BrowseLocalVaults
 import com.edro08.vaultk.domain.LocalVaultItem
 import com.edro08.vaultk.domain.VaultId
+import com.edro08.vaultk.ui.component.EmptyState
 import com.edro08.vaultk.ui.component.VaultkHeader
 import com.edro08.vaultk.ui.component.VaultkCard
 import com.edro08.vaultk.ui.component.VaultkIconTile
@@ -79,10 +81,20 @@ fun LocalVaultPickerScreen(browser: BrowseLocalVaults, onBack: () -> Unit,
                 leadingIcon = { Icon(Icons.Default.Search, null) })
             when {
                 loading -> CircularProgressIndicator()
-                unavailable -> Text(stringResource(R.string.open_local_unavailable),
-                    color = MaterialTheme.colorScheme.error)
-                folders.isEmpty() && vaults.isEmpty() -> Text(stringResource(R.string.open_local_empty),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                unavailable -> VaultkCard(Modifier.fillMaxWidth()) {
+                    EmptyState(
+                        title = stringResource(R.string.open_local_unavailable),
+                        description = "",
+                        icon = Icons.Outlined.ErrorOutline
+                    )
+                }
+                folders.isEmpty() && vaults.isEmpty() -> VaultkCard(Modifier.fillMaxWidth()) {
+                    EmptyState(
+                        title = stringResource(R.string.open_local_empty),
+                        description = "",
+                        icon = Icons.Default.Folder
+                    )
+                }
                 else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(VaultkSpacing.small)) {
                     items(folders, key = { it.id.value }) { directory ->
                         LocalFileRow(directory, false, { folder = directory.id })

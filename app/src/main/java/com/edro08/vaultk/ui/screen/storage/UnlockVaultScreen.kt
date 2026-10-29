@@ -1,9 +1,15 @@
-package com.edro08.vaultk.ui.screen
+package com.edro08.vaultk.ui.screen.storage
 
 import android.os.SystemClock
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,6 +25,7 @@ import androidx.compose.material.icons.filled.Fingerprint
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Security
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -49,6 +56,8 @@ import com.edro08.vaultk.ui.component.VaultkIconTile
 import com.edro08.vaultk.ui.component.VaultkHeader
 import com.edro08.vaultk.ui.component.VaultkBottomNavigation
 import com.edro08.vaultk.ui.component.VaultkDestination
+import com.edro08.vaultk.ui.component.VaultkNotificationCard
+import com.edro08.vaultk.ui.screen.generator.PasswordGeneratorScreen
 import com.edro08.vaultk.ui.theme.VaultkSpacing
 import com.edro08.vaultk.ui.theme.VaultkTheme
 import kotlinx.coroutines.delay
@@ -74,9 +83,20 @@ fun UnlockVaultScreen(
     loading: Boolean = false,
     openingStartedAtMillis: Long = 0L,
     errorMessage: String? = null,
+    onErrorDismiss: (() -> Unit)? = null,
     settingsContent: @Composable (Modifier) -> Unit = {},
 ) {
     var destination by rememberSaveable { mutableStateOf(VaultkDestination.Vault) }
+    var activeError by remember(errorMessage) { mutableStateOf(errorMessage) }
+
+    LaunchedEffect(activeError) {
+        if (activeError != null) {
+            delay(4000)
+            activeError = null
+            onErrorDismiss?.invoke()
+        }
+    }
+
     BackHandler(destination != VaultkDestination.Vault) { destination = VaultkDestination.Vault }
     Scaffold(
         modifier = modifier,
@@ -93,93 +113,112 @@ fun UnlockVaultScreen(
         } else if (destination == VaultkDestination.Generator) {
             PasswordGeneratorScreen(Modifier.padding(insets))
         } else {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(insets).verticalScroll(rememberScrollState())
-                .padding(horizontal = VaultkSpacing.normal, vertical = VaultkSpacing.large),
-            verticalArrangement = Arrangement.spacedBy(VaultkSpacing.large),
-        ) {
-            if (vault == null) {
-                VaultkCard {
-                    EmptyState(
-                        title = stringResource(R.string.unlock_no_vault),
-                        description = stringResource(R.string.unlock_no_vault_description),
-                        action = {
-                            ActionButton(stringResource(R.string.common_select_vault), onClick = onSelectVault, icon = Icons.Default.FolderOpen)
-                        },
-                    )
-                }
-            } else {
-                SelectedVaultRow(vault, onSelectVault = onSelectVault)
-                if (vault.biometricEnabled) {
-                    VaultkCard {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(VaultkSpacing.normal),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(VaultkSpacing.medium),
-                        ) {
-                            VaultkIconTile(Icons.Default.Security, null)
-                            Text(
-                                stringResource(R.string.unlock_biometric_protected),
-                                modifier = Modifier.weight(1f),
-                                style = MaterialTheme.typography.bodyMedium,
+            Box(modifier = Modifier.fillMaxSize().padding(insets)) {
+                Column(
+                    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                        .padding(horizontal = VaultkSpacing.normal, vertical = VaultkSpacing.large),
+                    verticalArrangement = Arrangement.spacedBy(VaultkSpacing.large),
+                ) {
+                    if (vault == null) {
+                        VaultkCard {
+                            EmptyState(
+                                title = stringResource(R.string.unlock_no_vault),
+                                description = stringResource(R.string.unlock_no_vault_description),
+                                action = {
+                                    ActionButton(stringResource(R.string.common_select_vault), onClick = onSelectVault, icon = Icons.Default.FolderOpen)
+                                },
                             )
                         }
-                    }
-                }
+                    } else {
+                        SelectedVaultRow(vault, onSelectVault = onSelectVault)
+                        if (vault.biometricEnabled) {
+                            VaultkCard {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(VaultkSpacing.normal),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(VaultkSpacing.medium),
+                                ) {
+                                    VaultkIconTile(Icons.Default.Security, null)
+                                    Text(
+                                        stringResource(R.string.unlock_biometric_protected),
+                                        modifier = Modifier.weight(1f),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                    )
+                                }
+                            }
+                        }
 
-                // Keep transient credentials outside saved instance state; switching vaults clears them.
-                key(vault.identity) {
-                    var password by remember { mutableStateOf("") }
-                    Column(verticalArrangement = Arrangement.spacedBy(VaultkSpacing.normal)) {
-                        Text(stringResource(R.string.unlock_master_key), style = MaterialTheme.typography.titleMedium)
-                        PasswordField(password, onValueChange = { password = it }, label = stringResource(R.string.unlock_master_key_hint))
-                        Button(
-                            onClick = {
-                                val key = password.toCharArray()
-                                password = ""
-                                onUnlock?.invoke(key)
-                            },
-                            enabled = password.isNotBlank() && onUnlock != null && !loading,
-                            modifier = Modifier.fillMaxWidth().testTag("unlock-manual"),
-                            shape = MaterialTheme.shapes.small,
-                        ) { Text(stringResource(R.string.unlock_action)) }
-                        if (loading) {
-                            key(openingStartedAtMillis) { OpeningElapsed(openingStartedAtMillis) }
+                        // Keep transient credentials outside saved instance state; switching vaults clears them.
+                        key(vault.identity) {
+                            var password by remember { mutableStateOf("") }
+                            Column(verticalArrangement = Arrangement.spacedBy(VaultkSpacing.normal)) {
+                                Text(stringResource(R.string.unlock_master_key), style = MaterialTheme.typography.titleMedium)
+                                PasswordField(password, onValueChange = { password = it }, label = stringResource(R.string.unlock_master_key_hint))
+                                Button(
+                                    onClick = {
+                                        val key = password.toCharArray()
+                                        password = ""
+                                        onUnlock?.invoke(key)
+                                    },
+                                    enabled = password.isNotBlank() && onUnlock != null && !loading,
+                                    modifier = Modifier.fillMaxWidth().testTag("unlock-manual"),
+                                    shape = MaterialTheme.shapes.small,
+                                ) { Text(stringResource(R.string.unlock_action)) }
+                                if (loading) {
+                                    key(openingStartedAtMillis) { OpeningElapsed(openingStartedAtMillis) }
+                                }
+                                if (onUnlock == null) {
+                                    Text(
+                                        stringResource(R.string.unlock_read_pending),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
                         }
-                        if (errorMessage != null) {
-                            Text(errorMessage, color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodyMedium)
-                        }
-                        if (onUnlock == null) {
+
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = VaultkSpacing.normal),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(VaultkSpacing.small),
+                        ) {
+                            Icon(Icons.Default.Fingerprint, null, tint = MaterialTheme.colorScheme.secondary)
+                            Text(stringResource(R.string.unlock_fingerprint_title), style = MaterialTheme.typography.titleMedium)
                             Text(
-                                stringResource(R.string.unlock_read_pending),
+                                stringResource(if (vault.biometricEnabled) R.string.unlock_fingerprint_ready else R.string.unlock_fingerprint_pending),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
+                            if (vault.biometricEnabled) {
+                                Button(onClick = { onBiometricUnlock?.invoke() }, enabled = onBiometricUnlock != null) {
+                                    Text(stringResource(R.string.unlock_fingerprint_action))
+                                }
+                            }
                         }
                     }
                 }
 
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = VaultkSpacing.normal),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(VaultkSpacing.small),
+                AnimatedVisibility(
+                    visible = activeError != null,
+                    enter = fadeIn() + slideInVertically { it / 2 },
+                    exit = fadeOut() + slideOutVertically { it / 2 },
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = VaultkSpacing.small)
                 ) {
-                    Icon(Icons.Default.Fingerprint, null, tint = MaterialTheme.colorScheme.secondary)
-                    Text(stringResource(R.string.unlock_fingerprint_title), style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        stringResource(if (vault.biometricEnabled) R.string.unlock_fingerprint_ready else R.string.unlock_fingerprint_pending),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    if (vault.biometricEnabled) {
-                        Button(onClick = { onBiometricUnlock?.invoke() }, enabled = onBiometricUnlock != null) {
-                            Text(stringResource(R.string.unlock_fingerprint_action))
-                        }
+                    if (activeError != null) {
+                        VaultkNotificationCard(
+                            message = activeError!!,
+                            isError = true,
+                            icon = Icons.Outlined.ErrorOutline,
+                            onDismiss = {
+                                activeError = null
+                                onErrorDismiss?.invoke()
+                            }
+                        )
                     }
                 }
             }
-        }
         }
     }
 }

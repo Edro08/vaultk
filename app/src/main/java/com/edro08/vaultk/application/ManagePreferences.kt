@@ -19,6 +19,12 @@ class ManagePreferences(private val store: AppPreferenceStore) {
     var fileAccessMode: FileAccessMode
         get() = store.fileAccessMode
         set(value) { store.fileAccessMode = value }
+    var cloudAutoSync: Boolean
+        get() = store.cloudAutoSync
+        set(value) { store.cloudAutoSync = value }
+    var cloudAllowMetered: Boolean
+        get() = store.cloudAllowMetered
+        set(value) { store.cloudAllowMetered = value }
 }
 
 class ManageSessionSecurity(private val store: SecurityPreferenceStore) {

@@ -1,4 +1,4 @@
-package com.edro08.vaultk.ui.screen
+package com.edro08.vaultk.ui.screen.vault
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -85,7 +86,7 @@ fun EntryDetailHeader(entry: VaultEntry, groupName: String, onBack: () -> Unit,
             IconButton(onClick = onEdit) {
                 Icon(Icons.Default.Edit, stringResource(R.string.detail_edit))
             }
-            androidx.compose.foundation.layout.Box {
+            Box {
                 IconButton(onClick = { menuOpen = true }) {
                     Icon(Icons.Default.MoreVert, stringResource(R.string.content_more))
                 }
@@ -134,7 +135,7 @@ fun EntryDetailScreen(entry: VaultEntry, modifier: Modifier = Modifier, showDeta
     }
 
     LazyColumn(modifier = modifier.fillMaxSize(),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(VaultkSpacing.normal),
+        contentPadding = PaddingValues(VaultkSpacing.normal),
         verticalArrangement = Arrangement.spacedBy(VaultkSpacing.medium)) {
         if (entry.username.isNotBlank()) item {
             DetailSection(stringResource(R.string.content_username_label), Icons.Default.Person,

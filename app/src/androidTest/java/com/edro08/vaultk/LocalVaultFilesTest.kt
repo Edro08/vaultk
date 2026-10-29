@@ -12,7 +12,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.edro08.vaultk.data.LocalVaultFiles
 import com.edro08.vaultk.application.BrowseLocalVaults
 import com.edro08.vaultk.data.KdbxReader
-import com.edro08.vaultk.ui.screen.LocalVaultPickerScreen
+import com.edro08.vaultk.ui.screen.storage.LocalVaultPickerScreen
 import com.edro08.vaultk.ui.theme.VaultkTheme
 import java.io.File
 import org.linguafranca.pwdb.format.KdbxCredentials
