@@ -9,3 +9,7 @@ Vaultk es una aplicación Android para abrir y gestionar archivos KDBX.
 Al terminar cada fase, documentar lo implementado, las decisiones relevantes y
 la verificación en `agents/context/history.md`. Mantener orden cronológico
 descendente: la fase más reciente siempre al principio, debajo de la cabecera.
+
+## Convención de commits
+En esta rama (`feat/initial-app`), todos los commits deben iniciar obligatoriamente con el prefijo:
+`feat/initial-app: <descripción del cambio>`
