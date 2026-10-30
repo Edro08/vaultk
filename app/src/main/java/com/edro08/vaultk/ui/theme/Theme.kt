@@ -4,46 +4,89 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
-// Keep the brand palette in one place. A future appearance preference only needs to
-// select the scheme here; components use MaterialTheme rather than fixed colors.
+@Immutable
+data class VaultkCustomColors(
+    val iconTileBackground: Color,
+    val iconTileBorder: Color,
+    val iconTileTint: Color,
+    val iconNormal: Color,
+    val buttonSecondaryBackground: Color,
+    val buttonSecondaryText: Color,
+    val buttonSecondaryBorder: Color,
+    val inputBackground: Color,
+    val inputBorder: Color,
+    val inputBorderFocused: Color,
+    val textMuted: Color,
+)
+
+val LocalVaultkCustomColors = staticCompositionLocalOf {
+    VaultkCustomColors(
+        iconTileBackground = VaultTileBackground,
+        iconTileBorder = VaultTileBorder,
+        iconTileTint = VaultLavender,
+        iconNormal = ZincLight,
+        buttonSecondaryBackground = SecondaryButtonBg,
+        buttonSecondaryText = WhitePure,
+        buttonSecondaryBorder = SecondaryButtonBorder,
+        inputBackground = Color(0xFF0D0D10),
+        inputBorder = VaultBorder,
+        inputBorderFocused = VaultIndigo,
+        textMuted = ZincDark,
+    )
+}
+
+val MaterialTheme.vaultkCustomColors: VaultkCustomColors
+    @Composable
+    @ReadOnlyComposable
+    get() = LocalVaultkCustomColors.current
+
+// Paleta Inspirada en el Icono Oficial de Vaultk (Propuesta 1: Electric Indigo & Obsidian)
 private val DarkColors = darkColorScheme(
-    primary = Violet,
-    onPrimary = Ink,
-    primaryContainer = Color(0xFF322449),
-    onPrimaryContainer = VioletLight,
-    secondary = VioletLight,
-    onSecondary = Ink,
-    tertiary = Color(0xFF44DB98),
-    background = Ink,
-    onBackground = Color(0xFFF7F5FF),
-    surface = Panel,
-    onSurface = Color(0xFFF7F5FF),
-    surfaceVariant = Field,
-    onSurfaceVariant = Muted,
-    outline = Border,
-    outlineVariant = Color(0xFF212639),
-    error = Color(0xFFFF6B80),
+    primary = VaultIndigo, // #582BF5 (violeta eléctrico del pliegue de la V)
+    onPrimary = WhitePure,
+    primaryContainer = VaultTileBackground, // #1E1738
+    onPrimaryContainer = VaultLavender, // #C185FC
+    secondary = VaultLavender, // #C185FC
+    onSecondary = PureBlack,
+    secondaryContainer = VaultNavActivePill, // #221846
+    onSecondaryContainer = VaultLavender, // #C185FC
+    tertiary = StatusGreen,
+    background = PureBlack, // #000000 (fondo idéntico al icono)
+    onBackground = WhitePure,
+    surface = VaultObsidian, // #131316 (cajas obsidiana)
+    onSurface = WhitePure,
+    surfaceVariant = VaultField, // #1A1A1E
+    onSurfaceVariant = ZincMedium, // #A1A1AA
+    outline = VaultBorderInteractive, // #332763
+    outlineVariant = VaultBorder, // #23222B
+    error = StatusRed,
 )
 
 private val LightColors = lightColorScheme(
-    primary = VioletDark,
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFFEEE1FF),
-    onPrimaryContainer = Color(0xFF392257),
-    secondary = Color(0xFF635188),
-    onSecondary = Color.White,
-    tertiary = Color(0xFF147847),
-    background = Color(0xFFFBF9FF),
-    onBackground = Color(0xFF1B1822),
-    surface = Color.White,
-    onSurface = Color(0xFF1B1822),
-    surfaceVariant = Color(0xFFF3F0FA),
-    onSurfaceVariant = Color(0xFF57516A),
-    outline = Color(0xFFD9D2E5),
-    outlineVariant = Color(0xFFEAE5F1),
-    error = Color(0xFFB4233B),
+    primary = VaultIndigo, // #582BF5 (índigo de la V, contraste > 8:1 sobre blanco)
+    onPrimary = WhitePure,
+    primaryContainer = LightTileBackground, // #F0EBFE (lavanda suave)
+    onPrimaryContainer = VaultIndigo, // #582BF5
+    secondary = VaultIndigo,
+    onSecondary = WhitePure,
+    secondaryContainer = LightNavActivePill, // #EDE8FE (píldora activa de navegación)
+    onSecondaryContainer = VaultIndigo, // #582BF5
+    tertiary = StatusGreen,
+    background = LightBackground, // #F8F9FB (blanco nieve limpio)
+    onBackground = LightTextPrimary, // #09090B
+    surface = LightSurface, // #FFFFFF (tarjeta blanco puro)
+    onSurface = LightTextPrimary, // #09090B
+    surfaceVariant = LightField, // #F4F4F6
+    onSurfaceVariant = LightTextSecondary, // #6B7280
+    outline = LightBorderInteractive, // #E4D7FC
+    outlineVariant = LightBorder, // #E5E7EB
+    error = StatusRed,
 )
 
 @Composable
@@ -51,10 +94,41 @@ fun VaultkTheme(
     darkTheme: Boolean = true,
     content: @Composable () -> Unit,
 ) {
-    MaterialTheme(
-        colorScheme = if (darkTheme) DarkColors else LightColors,
-        typography = VaultkTypography,
-        shapes = VaultkShapes,
-        content = content,
-    )
+    val customColors = if (darkTheme) {
+        VaultkCustomColors(
+            iconTileBackground = VaultTileBackground,
+            iconTileBorder = VaultTileBorder,
+            iconTileTint = VaultLavender,
+            iconNormal = ZincLight,
+            buttonSecondaryBackground = SecondaryButtonBg,
+            buttonSecondaryText = WhitePure,
+            buttonSecondaryBorder = SecondaryButtonBorder,
+            inputBackground = Color(0xFF0D0D10),
+            inputBorder = VaultBorder,
+            inputBorderFocused = VaultIndigo,
+            textMuted = ZincDark,
+        )
+    } else {
+        VaultkCustomColors(
+            iconTileBackground = LightTileBackground,
+            iconTileBorder = LightBorderInteractive,
+            iconTileTint = VaultIndigo,
+            iconNormal = LightTextSecondary,
+            buttonSecondaryBackground = LightButtonSecondary,
+            buttonSecondaryText = LightTextPrimary,
+            buttonSecondaryBorder = LightButtonSecondaryBorder,
+            inputBackground = LightSurface,
+            inputBorder = LightBorder,
+            inputBorderFocused = VaultIndigo,
+            textMuted = LightTextSecondary,
+        )
+    }
+
+    CompositionLocalProvider(LocalVaultkCustomColors provides customColors) {
+        MaterialTheme(
+            colorScheme = if (darkTheme) DarkColors else LightColors,
+            typography = VaultkTypography,
+            content = content,
+        )
+    }
 }

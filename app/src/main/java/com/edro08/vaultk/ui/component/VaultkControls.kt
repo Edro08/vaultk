@@ -68,7 +68,7 @@ fun VaultkHeader(
     ) {
         if (onBack != null) {
             IconButton(onClick = onBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back), tint = MaterialTheme.colorScheme.primary)
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.common_back), tint = MaterialTheme.colorScheme.onSurface)
             }
         }
         if (icon != null) VaultkIconTile(icon, null)
@@ -200,7 +200,7 @@ fun EmptyState(
                 imageVector = icon,
                 contentDescription = null,
                 modifier = Modifier.size(52.dp),
-                tint = MaterialTheme.colorScheme.primary
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         Text(
@@ -232,8 +232,8 @@ fun VaultkNotificationCard(
             .fillMaxWidth()
             .padding(horizontal = VaultkSpacing.normal, vertical = VaultkSpacing.small),
         shape = RoundedCornerShape(20.dp),
-        color = Color(0xFF1B1B24),
-        border = BorderStroke(1.dp, Color(0xFF2E2E3A)),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         shadowElevation = 4.dp
     ) {
         Row(

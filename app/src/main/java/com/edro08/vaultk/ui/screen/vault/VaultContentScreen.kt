@@ -26,13 +26,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Key
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Close
@@ -469,6 +469,19 @@ fun VaultContentScreen(content: VaultContent, fallbackName: String, onClose: () 
     BackHandler(entry != null || destination != VaultkDestination.Vault) {
         if (entry != null) entry = null else destination = VaultkDestination.Vault
     }
+    val cloudIcon = when {
+        inConflict || (syncFailed && copy?.state == CloudCopyState.Clean) -> Icons.Outlined.CloudOff
+        saving || syncing -> Icons.Outlined.CloudSync
+        copy?.state == CloudCopyState.Pending -> Icons.Outlined.CloudUpload
+        copy == null || !editable || copy.bytes > 250_000_000L -> Icons.Outlined.CloudQueue
+        else -> Icons.Outlined.CloudDone
+    }
+    val cloudIconTint = when {
+        saving || syncing -> MaterialTheme.colorScheme.primary
+        isWarningStatus -> MaterialTheme.colorScheme.error
+        cloudIcon == Icons.Outlined.CloudDone -> MaterialTheme.colorScheme.tertiary
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
@@ -493,8 +506,8 @@ fun VaultContentScreen(content: VaultContent, fallbackName: String, onClose: () 
                         onDelete = { deleteDialogOpen = true },
                         onRestore = if (inRecycleBin) {
                             { movePickerOpen = true }
-                        } else null,
-                        onLock = requestLock)
+                        } else null
+                    )
                 } else {
                     VaultkHeader(
                         title = entry!!.title,
@@ -515,26 +528,19 @@ fun VaultContentScreen(content: VaultContent, fallbackName: String, onClose: () 
                     editable -> R.string.cloud_short_status_clean
                     else -> R.string.cloud_short_status_readonly
                 }
-                val cloudIcon = when {
-                    inConflict || (syncFailed && copy?.state == CloudCopyState.Clean) -> Icons.Outlined.CloudOff
-                    saving || syncing -> Icons.Outlined.CloudSync
-                    copy?.state == CloudCopyState.Pending -> Icons.Outlined.CloudUpload
-                    copy == null || !editable || copy.bytes > 250_000_000L -> Icons.Outlined.CloudQueue
-                    else -> Icons.Outlined.CloudDone
-                }
                 Row(Modifier.fillMaxWidth().padding(horizontal = VaultkSpacing.normal, vertical = VaultkSpacing.medium),
                     verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(VaultkSpacing.tiny)) {
-                        Row(verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(VaultkSpacing.small)) {
-                            Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge)
-                            Icon(Icons.Default.Lock, null, tint = MaterialTheme.colorScheme.primary)
-                        }
+                        Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge)
                         Row(verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(VaultkSpacing.small)) {
                             Box(
                                 Modifier.size(8.dp).background(
-                                    if (isWarningStatus) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary,
+                                    when {
+                                        isWarningStatus -> MaterialTheme.colorScheme.error
+                                        saving || syncing -> MaterialTheme.colorScheme.primary
+                                        else -> MaterialTheme.colorScheme.tertiary
+                                    },
                                     CircleShape
                                 )
                             )
@@ -567,7 +573,7 @@ fun VaultContentScreen(content: VaultContent, fallbackName: String, onClose: () 
                                 Icon(
                                     imageVector = if (saving || syncing) Icons.Outlined.CloudSync else cloudIcon,
                                     contentDescription = stringResource(R.string.cloud_view_status),
-                                    tint = if (isWarningStatus) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                                    tint = cloudIconTint,
                                     modifier = Modifier.size(24.dp)
                                 )
                             }
@@ -612,9 +618,9 @@ fun VaultContentScreen(content: VaultContent, fallbackName: String, onClose: () 
                                     modifier = Modifier.testTag("cloud-status-button")
                                 ) {
                                     Icon(
-                                        imageVector = if (saving || syncing) Icons.Outlined.CloudSync else Icons.Outlined.CloudDone,
+                                        imageVector = if (saving || syncing) Icons.Outlined.CloudSync else cloudIcon,
                                         contentDescription = stringResource(R.string.cloud_view_status),
-                                        tint = MaterialTheme.colorScheme.primary,
+                                        tint = cloudIconTint,
                                         modifier = Modifier.size(24.dp)
                                     )
                                 }
@@ -644,7 +650,11 @@ fun VaultContentScreen(content: VaultContent, fallbackName: String, onClose: () 
         } },
         floatingActionButton = {
             if (destination == VaultkDestination.Vault && entry == null && editable && !saving && !syncing) {
-                FloatingActionButton(onClick = { editingEntry = null; formOpen = true }) {
+                FloatingActionButton(
+                    onClick = { editingEntry = null; formOpen = true },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ) {
                     Icon(Icons.Default.Add, contentDescription = stringResource(R.string.content_new_entry))
                 }
             }
@@ -663,7 +673,8 @@ fun VaultContentScreen(content: VaultContent, fallbackName: String, onClose: () 
             entry != null -> EntryDetailScreen(
                 entry!!,
                 Modifier.padding(insets),
-                showDetails
+                showDetails,
+                groupName = currentGroup.name.ifBlank { stringResource(R.string.content_root) }
             ) { message ->
                 scope.launch { snackbar.showSnackbar(message) }
             }
@@ -805,14 +816,27 @@ fun VaultContentScreen(content: VaultContent, fallbackName: String, onClose: () 
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     item {
+                        val rootLabel = stringResource(R.string.content_root)
+                        val formattedGroupPath = remember(root, currentGroup.id) {
+                            (findGroupPath(root, currentGroup.id) ?: listOf(currentGroup))
+                                .joinToString(" › ") { it.name.ifBlank { rootLabel } }
+                        }
                         VaultkCard(Modifier.clickable { groupPickerOpen = true }) {
                             Row(Modifier.fillMaxWidth().padding(VaultkSpacing.medium),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(VaultkSpacing.medium)) {
                                 VaultkIconTile(Icons.Default.Folder, null)
-                                Text(currentGroup.name.ifBlank { stringResource(R.string.content_root) },
-                                    modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
-                                Icon(Icons.Default.ArrowDropDown, stringResource(R.string.content_select_group))
+                                Text(
+                                    text = formattedGroupPath,
+                                    modifier = Modifier.weight(1f),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                    contentDescription = stringResource(R.string.content_select_group)
+                                )
                             }
                         }
                     }
@@ -911,6 +935,17 @@ fun VaultContentScreen(content: VaultContent, fallbackName: String, onClose: () 
                         persistCloudChange(updated, null)
                     } else {
                         root = updated
+                    }
+                }
+            },
+            onRename = { targetId, newName ->
+                if (editable && editVault != null) {
+                    val updated = editVault.renameGroup(root, targetId, newName)
+                    if (isCloudVault) {
+                        persistCloudChange(updated, null)
+                    } else {
+                        root = updated
+                        hasEdits = true
                     }
                 }
             },
@@ -1063,7 +1098,7 @@ fun VaultContentScreen(content: VaultContent, fallbackName: String, onClose: () 
                         val statusIconTint = when {
                             inConflict || (syncFailed && copy?.state == CloudCopyState.Clean) -> MaterialTheme.colorScheme.error
                             copy?.state == CloudCopyState.Pending -> MaterialTheme.colorScheme.primary
-                            else -> Color(0xFF44DB98)
+                            else -> MaterialTheme.colorScheme.tertiary
                         }
                         Icon(
                             imageVector = statusIcon,

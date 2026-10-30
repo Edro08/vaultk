@@ -2,6 +2,8 @@ package com.edro08.vaultk.ui.screen.vault
 
 import android.app.DatePickerDialog
 import android.content.ActivityNotFoundException
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.database.Cursor
 import android.net.Uri
@@ -10,28 +12,34 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AttachFile
-import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Casino
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.DeleteOutline
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Lock
@@ -43,6 +51,12 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.outlined.Fingerprint
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
@@ -228,15 +242,20 @@ fun EntryFormScreen(groupName: String, onSave: (EntryFormData) -> Unit, onBack: 
                             savedTags, savedExpiry,
                              otpUri.orEmpty(), pin, fields.toList(), attachments.toList()))
                     }, enabled = title.isNotBlank() && otpValid && (!expires || expiryDate != null)) {
-                        Icon(Icons.Default.Check, stringResource(R.string.form_save))
+                        Icon(Icons.Default.Save, stringResource(R.string.form_save))
                     }
                     Box {
                         IconButton(onClick = { menuOpen = true }) {
                             Icon(Icons.Default.MoreVert, stringResource(R.string.content_more))
                         }
                         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                            DropdownMenuItem(text = { Text(stringResource(R.string.form_discard)) },
-                                onClick = { menuOpen = false; goBack() })
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.form_discard)) },
+                                leadingIcon = {
+                                    Icon(Icons.Default.DeleteOutline, contentDescription = null)
+                                },
+                                onClick = { menuOpen = false; goBack() }
+                            )
                         }
                     }
                 })
@@ -245,79 +264,133 @@ fun EntryFormScreen(groupName: String, onSave: (EntryFormData) -> Unit, onBack: 
         Column(Modifier.fillMaxSize().padding(insets).verticalScroll(rememberScrollState())
             .padding(VaultkSpacing.normal),
             verticalArrangement = Arrangement.spacedBy(VaultkSpacing.medium)) {
-            Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = MaterialTheme.shapes.medium) {
-                Text(stringResource(if (initial != null) R.string.form_edit_unsaved_notice else R.string.form_unsaved_notice),
-                    modifier = Modifier.fillMaxWidth().padding(VaultkSpacing.medium),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
             FormSection(stringResource(R.string.form_general), stringResource(R.string.form_general_subtitle),
                 Icons.Default.Description, initiallyExpanded = true) {
-                FormInput(Icons.Default.Description) { fieldModifier ->
-                    OutlinedTextField(title, { title = it; titleTouched = true },
-                        label = { Text(stringResource(R.string.form_title)) },
-                        placeholder = { Text(stringResource(R.string.form_title_hint)) }, singleLine = true,
-                        modifier = fieldModifier)
-                }
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it; titleTouched = true },
+                    label = { Text(stringResource(R.string.form_title)) },
+                    placeholder = { Text(stringResource(R.string.form_title_hint)) },
+                    leadingIcon = {
+                        Icon(Icons.Default.Description, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
                 if (titleTouched && title.isBlank()) Text(stringResource(R.string.form_title_required),
                     color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-                FormInput(Icons.Default.Person) { fieldModifier ->
-                    OutlinedTextField(username, { username = it },
-                        label = { Text(stringResource(R.string.content_username_label)) },
-                        singleLine = true, modifier = fieldModifier)
-                }
-                FormInput(Icons.Default.Key) { fieldModifier ->
-                    OutlinedTextField(password, { password = it }, label = { Text(stringResource(R.string.detail_password)) },
-                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                Icon(if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    stringResource(if (passwordVisible) R.string.common_hide_password else R.string.common_show_password))
-                            }
-                        }, singleLine = true, modifier = fieldModifier)
-                }
+                OutlinedTextField(
+                    value = username,
+                    onValueChange = { username = it },
+                    label = { Text(stringResource(R.string.content_username_label)) },
+                    leadingIcon = {
+                        Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text(stringResource(R.string.detail_password)) },
+                    leadingIcon = {
+                        Icon(Icons.Default.Key, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    },
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                stringResource(if (passwordVisible) R.string.common_hide_password else R.string.common_show_password))
+                        }
+                    },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
                 Row(Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(VaultkSpacing.small)) {
-                    OutlinedButton(onClick = { showGenerator = true }, modifier = Modifier.heightIn(min = 48.dp),
+                    OutlinedButton(
+                        onClick = { showGenerator = true },
+                        modifier = Modifier.weight(1f).heightIn(min = 44.dp),
                         shape = MaterialTheme.shapes.small,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                     ) {
                         Icon(Icons.Default.Casino, null)
-                        Text(stringResource(R.string.generator_generate), Modifier.padding(start = VaultkSpacing.small))
+                        Text(stringResource(R.string.form_generate_password), Modifier.padding(start = VaultkSpacing.small))
                     }
-                    OutlinedButton(onClick = { showClearPassword = true },
-                        enabled = password.isNotEmpty(), modifier = Modifier.heightIn(min = 48.dp),
-                        shape = MaterialTheme.shapes.small) {
-                        Icon(Icons.Default.DeleteOutline, null)
-                        Text(stringResource(R.string.form_password_clear), Modifier.padding(start = VaultkSpacing.small))
+                    if (password.isNotEmpty()) {
+                        OutlinedButton(
+                            onClick = { showClearPassword = true },
+                            modifier = Modifier.heightIn(min = 44.dp),
+                            shape = MaterialTheme.shapes.small
+                        ) {
+                            Icon(Icons.Default.DeleteOutline, null)
+                            Text(stringResource(R.string.form_password_clear), Modifier.padding(start = VaultkSpacing.small))
+                        }
                     }
                 }
-                FormInput(Icons.Default.Link) { fieldModifier ->
-                    OutlinedTextField(url, { url = it }, label = { Text(stringResource(R.string.content_url_label)) },
-                        singleLine = true, modifier = fieldModifier)
-                }
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = { url = it },
+                    label = { Text(stringResource(R.string.content_url_label)) },
+                    leadingIcon = {
+                        Icon(Icons.Default.Link, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
                 Text(stringResource(R.string.detail_tags), style = MaterialTheme.typography.titleSmall)
-                tags.forEach { tag ->
-                    Surface(color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = MaterialTheme.shapes.small) {
-                        Row(Modifier.padding(start = VaultkSpacing.medium), verticalAlignment = Alignment.CenterVertically) {
-                            Text(tag, color = MaterialTheme.colorScheme.onPrimaryContainer)
-                            IconButton(onClick = { tags.remove(tag) }) {
-                                Icon(Icons.Default.Close, stringResource(R.string.form_remove_tag, tag),
-                                    tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                if (tags.isNotEmpty()) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(VaultkSpacing.small),
+                        verticalArrangement = Arrangement.spacedBy(VaultkSpacing.small)
+                    ) {
+                        tags.forEach { tag ->
+                            Surface(
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = RoundedCornerShape(VaultkSpacing.small)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(start = VaultkSpacing.small),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        tag,
+                                        modifier = Modifier.padding(vertical = VaultkSpacing.tiny),
+                                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                    IconButton(onClick = { tags.remove(tag) }, modifier = Modifier.size(28.dp)) {
+                                        Icon(
+                                            Icons.Default.Close,
+                                            stringResource(R.string.form_remove_tag, tag),
+                                            modifier = Modifier.size(14.dp),
+                                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
                 }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    OutlinedTextField(tagInput, { tagInput = it }, label = { Text(stringResource(R.string.form_add_tag)) },
-                        singleLine = true, modifier = Modifier.weight(1f))
-                    IconButton(onClick = { addTag() }, enabled = tagInput.isNotBlank()) {
-                        Icon(Icons.Default.Add, stringResource(R.string.form_add_tag))
-                    }
-                }
+                OutlinedTextField(
+                    value = tagInput,
+                    onValueChange = { tagInput = it },
+                    label = { Text(stringResource(R.string.form_add_tag)) },
+                    leadingIcon = {
+                        Icon(Icons.AutoMirrored.Filled.Label, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    },
+                    trailingIcon = {
+                        IconButton(onClick = { addTag() }, enabled = tagInput.isNotBlank()) {
+                            Icon(Icons.Default.Add, stringResource(R.string.form_add_tag))
+                        }
+                    },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.form_expiry), modifier = Modifier.weight(1f))
+                    Icon(Icons.Default.DateRange, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(R.string.form_expiry), modifier = Modifier.weight(1f).padding(start = VaultkSpacing.small))
                     Switch(checked = expires, onCheckedChange = { expires = it })
                 }
                 if (expires) {
@@ -334,14 +407,28 @@ fun EntryFormScreen(groupName: String, onSave: (EntryFormData) -> Unit, onBack: 
                             modifier = Modifier.padding(start = VaultkSpacing.small))
                     }
                 }
-                FormInput(Icons.Default.Description) { fieldModifier ->
-                    OutlinedTextField(notes, { if (it.length <= notesLimit) notes = it },
-                        label = { Text(stringResource(R.string.content_notes_label)) },
-                        placeholder = { Text(stringResource(R.string.form_notes_hint)) },
-                        minLines = 3, maxLines = 6, modifier = fieldModifier)
-                }
-                Text(stringResource(R.string.form_notes_count, notes.length, notesLimit),
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            FormSection(
+                title = stringResource(R.string.form_notes),
+                subtitle = stringResource(R.string.form_notes_subtitle),
+                icon = Icons.Default.Description,
+                initiallyExpanded = true
+            ) {
+                OutlinedTextField(
+                    value = notes,
+                    onValueChange = { if (it.length <= notesLimit) notes = it },
+                    label = { Text(stringResource(R.string.content_notes_label)) },
+                    placeholder = { Text(stringResource(R.string.form_notes_hint)) },
+                    minLines = 3,
+                    maxLines = 8,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    text = stringResource(R.string.form_notes_count, notes.length, notesLimit),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.align(Alignment.End)
+                )
             }
             FormSection(stringResource(R.string.form_advanced), stringResource(R.string.form_advanced_subtitle),
                 Icons.Default.Settings, initiallyExpanded = initial?.let {
@@ -372,18 +459,24 @@ fun EntryFormScreen(groupName: String, onSave: (EntryFormData) -> Unit, onBack: 
                     Icon(Icons.Default.Add, null)
                     Text(stringResource(R.string.form_add_field), modifier = Modifier.padding(start = VaultkSpacing.small))
                 }
-                FormInput(Icons.Default.Timer) { fieldModifier ->
-                    OutlinedTextField(otpInput, { otpInput = it },
-                        label = { Text(stringResource(R.string.form_totp_secret)) },
-                        placeholder = { Text(stringResource(R.string.form_totp_hint)) },
-                        visualTransformation = if (otpVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            IconButton(onClick = { otpVisible = !otpVisible }) {
-                                Icon(if (otpVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    stringResource(if (otpVisible) R.string.common_hide_password else R.string.common_show_password))
-                            }
-                        }, singleLine = true, modifier = fieldModifier)
-                }
+                OutlinedTextField(
+                    value = otpInput,
+                    onValueChange = { otpInput = it },
+                    label = { Text(stringResource(R.string.form_totp_secret)) },
+                    placeholder = { Text(stringResource(R.string.form_totp_hint)) },
+                    leadingIcon = {
+                        Icon(Icons.Default.Timer, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    },
+                    visualTransformation = if (otpVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { otpVisible = !otpVisible }) {
+                            Icon(if (otpVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                stringResource(if (otpVisible) R.string.common_hide_password else R.string.common_show_password))
+                        }
+                    },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
                 if (!otpValid) Text(stringResource(R.string.form_invalid_totp), color = MaterialTheme.colorScheme.error)
                 val invalidQr = stringResource(R.string.form_invalid_totp_qr)
                 val scannerError = stringResource(R.string.form_totp_scan_error)
@@ -411,16 +504,23 @@ fun EntryFormScreen(groupName: String, onSave: (EntryFormData) -> Unit, onBack: 
                 }, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.form_scan_totp_qr))
                 }
-                FormInput(Icons.Default.Lock) { fieldModifier ->
-                    OutlinedTextField(pin, { pin = it }, label = { Text(stringResource(R.string.form_pin)) },
-                        visualTransformation = if (pinVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            IconButton(onClick = { pinVisible = !pinVisible }) {
-                                Icon(if (pinVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                    stringResource(if (pinVisible) R.string.common_hide_password else R.string.common_show_password))
-                            }
-                        }, singleLine = true, modifier = fieldModifier)
-                }
+                OutlinedTextField(
+                    value = pin,
+                    onValueChange = { pin = it },
+                    label = { Text(stringResource(R.string.form_pin)) },
+                    leadingIcon = {
+                        Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    },
+                    visualTransformation = if (pinVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    trailingIcon = {
+                        IconButton(onClick = { pinVisible = !pinVisible }) {
+                            Icon(if (pinVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                stringResource(if (pinVisible) R.string.common_hide_password else R.string.common_show_password))
+                        }
+                    },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
             FormSection(stringResource(R.string.form_attachments), stringResource(R.string.form_attachments_subtitle),
                 Icons.Default.AttachFile, initiallyExpanded = initial?.attachments?.isNotEmpty() == true) {
@@ -451,16 +551,63 @@ fun EntryFormScreen(groupName: String, onSave: (EntryFormData) -> Unit, onBack: 
                     Text(stringResource(R.string.form_add_attachment), modifier = Modifier.padding(start = VaultkSpacing.small))
                 }
             }
-            FormSection(stringResource(R.string.detail_properties), stringResource(R.string.form_properties_subtitle),
-                Icons.Default.Info, initiallyExpanded = false) {
-                if (initialEntry != null) Text(stringResource(R.string.detail_uuid, id))
-                Text(stringResource(R.string.form_property_group, groupName))
-                val dateFormat = remember { DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
-                    .withLocale(Locale.getDefault()).withZone(ZoneId.systemDefault()) }
-                Text(initialEntry?.created?.let { stringResource(R.string.detail_created, dateFormat.format(it)) }
-                    ?: stringResource(R.string.form_property_created))
-                Text(initialEntry?.modified?.let { stringResource(R.string.detail_modified, dateFormat.format(it)) }
-                    ?: stringResource(R.string.form_property_modified))
+            FormSection(
+                title = stringResource(R.string.detail_properties),
+                subtitle = stringResource(R.string.form_properties_subtitle),
+                icon = Icons.Default.Info,
+                initiallyExpanded = false
+            ) {
+                val dateFormat = remember {
+                    DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
+                        .withLocale(Locale.getDefault())
+                        .withZone(ZoneId.systemDefault())
+                }
+
+                FormPropertyRow(
+                    icon = Icons.Default.Folder,
+                    label = stringResource(R.string.form_property_group_label),
+                    value = groupName.ifBlank { stringResource(R.string.content_root) }
+                )
+
+                val createdText = initialEntry?.created?.let { dateFormat.format(it) }
+                    ?: stringResource(R.string.form_property_pending)
+                FormPropertyRow(
+                    icon = Icons.Outlined.Schedule,
+                    label = stringResource(R.string.form_property_created_label),
+                    value = createdText
+                )
+
+                val modifiedText = initialEntry?.modified?.let { dateFormat.format(it) }
+                    ?: stringResource(R.string.form_property_pending)
+                FormPropertyRow(
+                    icon = Icons.Outlined.History,
+                    label = stringResource(R.string.form_property_modified_label),
+                    value = modifiedText
+                )
+
+                if (initialEntry != null) {
+                    FormPropertyRow(
+                        icon = Icons.Outlined.Fingerprint,
+                        label = stringResource(R.string.form_property_uuid_label),
+                        value = id,
+                        isMonospace = true,
+                        trailingAction = {
+                            IconButton(onClick = {
+                                val clipboard = context.getSystemService(ClipboardManager::class.java)
+                                clipboard?.setPrimaryClip(ClipData.newPlainText("UUID", id))
+                                scope.launch {
+                                    snackbar.showSnackbar(context.getString(R.string.form_property_uuid_copied))
+                                }
+                            }) {
+                                Icon(
+                                    Icons.Default.ContentCopy,
+                                    contentDescription = stringResource(R.string.detail_copy_uuid),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    )
+                }
             }
         }
     }
@@ -533,15 +680,6 @@ fun EntryFormScreen(groupName: String, onSave: (EntryFormData) -> Unit, onBack: 
 }
 
 @Composable
-private fun FormInput(icon: ImageVector, field: @Composable (Modifier) -> Unit) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(VaultkSpacing.small)) {
-        VaultkIconTile(icon, null)
-        field(Modifier.weight(1f))
-    }
-}
-
-@Composable
 private fun FormSection(title: String, subtitle: String,
     icon: ImageVector, initiallyExpanded: Boolean,
     content: @Composable () -> Unit) {
@@ -563,6 +701,63 @@ private fun FormSection(title: String, subtitle: String,
             if (expanded) Column(Modifier.fillMaxWidth().padding(horizontal = VaultkSpacing.normal)
                 .padding(bottom = VaultkSpacing.normal),
                 verticalArrangement = Arrangement.spacedBy(VaultkSpacing.medium)) { content() }
+        }
+    }
+}
+
+@Composable
+private fun FormPropertyRow(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    isMonospace: Boolean = false,
+    trailingAction: (@Composable () -> Unit)? = null
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+        shape = RoundedCornerShape(12.dp),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = VaultkSpacing.medium, vertical = VaultkSpacing.small),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(VaultkSpacing.medium)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = value,
+                    style = if (isMonospace) MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace)
+                    else MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            if (trailingAction != null) {
+                trailingAction()
+            }
         }
     }
 }

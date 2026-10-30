@@ -222,16 +222,7 @@ fun OneDriveScreen(
                             )
                         }
                     }
-                    if (account == null) {
-                        Icon(
-                            imageVector = Icons.Outlined.Cloud,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier
-                                .padding(end = VaultkSpacing.small)
-                                .size(24.dp)
-                        )
-                    } else {
+                    if (account != null) {
                         Box {
                             IconButton(onClick = { menuOpen = true }) {
                                 Icon(

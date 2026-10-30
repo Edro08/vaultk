@@ -178,4 +178,27 @@ class KdbxWriterTest {
             }
         }
     }
+
+    @Test fun renamesGroupAcrossSaves() {
+        val db = KdbxDatabase()
+        db.rootGroup.addGroup("NombreViejo")
+        val bytes = ByteArrayOutputStream().also {
+            db.save(KdbxStreamFormat(KdbxHeader(4)), KdbxCredentials("llave".toByteArray()), it)
+        }.toByteArray()
+        val reader = KdbxReader()
+        val original = reader.read(bytes.inputStream(), "llave".toCharArray())
+        val targetGroupId = original.root.groups.single { it.name == "NombreViejo" }.id
+        val changed = original.copy(
+            root = original.root.copy(
+                groups = original.root.groups.map {
+                    if (it.id == targetGroupId) it.copy(name = "NombreNuevo") else it
+                }
+            )
+        )
+        val encrypted = KdbxWriter(reader).prepare(bytes.inputStream(), "llave".toCharArray(), original, changed) {
+            error("No attachment")
+        }
+        val reopened = reader.read(encrypted.inputStream(), "llave".toCharArray())
+        assertEquals("NombreNuevo", reopened.root.groups.single { it.id == targetGroupId }.name)
+    }
 }

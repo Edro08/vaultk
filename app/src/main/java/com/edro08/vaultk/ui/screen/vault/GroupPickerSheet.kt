@@ -20,10 +20,14 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -61,7 +65,7 @@ private fun VaultGroup.locations(parentId: String? = null, path: String = ""): L
         groups.flatMap { it.locations(id, fullPath) }
 }
 
-private fun findGroupPath(root: VaultGroup, targetId: String): List<VaultGroup>? {
+fun findGroupPath(root: VaultGroup, targetId: String): List<VaultGroup>? {
     if (root.id == targetId) return listOf(root)
     for (child in root.groups) {
         val path = findGroupPath(child, targetId)
@@ -77,6 +81,7 @@ fun GroupPickerSheet(
     onDismiss: () -> Unit,
     onSelect: (String) -> Unit,
     onCreate: (parentId: String, name: String) -> Unit,
+    onRename: (groupId: String, newName: String) -> Unit = { _, _ -> },
     selectionMode: Boolean = false,
     selectable: (VaultGroup) -> Boolean = { true },
 ) {
@@ -84,7 +89,10 @@ fun GroupPickerSheet(
     var browseId by remember(selectedId) { mutableStateOf(selectedId) }
     var query by remember { mutableStateOf("") }
     var showCreate by remember { mutableStateOf(false) }
+    var targetParentGroup by remember { mutableStateOf<VaultGroup?>(null) }
     var newName by remember { mutableStateOf("") }
+    var renamingGroup by remember { mutableStateOf<VaultGroup?>(null) }
+    var renameText by remember { mutableStateOf("") }
 
     val currentPath = remember(root, browseId) {
         findGroupPath(root, browseId) ?: listOf(root)
@@ -108,19 +116,18 @@ fun GroupPickerSheet(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(
-                    onClick = {
-                        if (currentPath.size > 1) {
+                if (currentPath.size > 1) {
+                    IconButton(
+                        onClick = {
                             browseId = currentPath[currentPath.size - 2].id
                         }
-                    },
-                    enabled = currentPath.size > 1
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = stringResource(R.string.groups_parent),
-                        tint = if (currentPath.size > 1) Color(0xFFBD9BDB) else Color.Transparent
-                    )
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.groups_parent),
+                            tint = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -131,13 +138,13 @@ fun GroupPickerSheet(
                         Icon(
                             imageVector = Icons.Outlined.Folder,
                             contentDescription = null,
-                            tint = Color(0xFFBD9BDB),
+                            tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(24.dp)
                         )
                         Icon(
                             imageVector = Icons.Default.Search,
                             contentDescription = null,
-                            tint = Color(0xFFBD9BDB),
+                            tint = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.size(11.dp).padding(start = 2.dp, top = 2.dp)
                         )
                     }
@@ -157,38 +164,59 @@ fun GroupPickerSheet(
                 }
             }
 
-            // 2. Breadcrumbs path: Raíz › Cuentas-Y
-            Row(
+            // 2. Breadcrumbs path: Raíz › Cuentas-Y with metadata summary
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
+                verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                currentPath.forEachIndexed { index, group ->
-                    val isLast = index == currentPath.lastIndex
-                    val groupLabel = group.name.ifBlank { stringResource(R.string.content_root) }
-                    if (isLast) {
-                        Text(
-                            text = groupLabel,
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    } else {
-                        Text(
-                            text = groupLabel,
-                            color = Color(0xFFBD9BDB),
-                            fontWeight = FontWeight.Medium,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.clickable { browseId = group.id }
-                        )
-                        Text(
-                            text = " › ",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    currentPath.forEachIndexed { index, group ->
+                        val isLast = index == currentPath.lastIndex
+                        val groupLabel = group.name.ifBlank { stringResource(R.string.content_root) }
+                        if (isLast) {
+                            Text(
+                                text = groupLabel,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        } else {
+                            Text(
+                                text = groupLabel,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.Medium,
+                                style = MaterialTheme.typography.titleMedium,
+                                modifier = Modifier.clickable { browseId = group.id }
+                            )
+                            Text(
+                                text = " › ",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                        }
                     }
                 }
+
+                val currentSubgroupCountText = when (browse.group.groups.size) {
+                    0 -> stringResource(R.string.groups_no_subgroups_count)
+                    1 -> stringResource(R.string.groups_one_subgroup_count)
+                    else -> stringResource(R.string.groups_many_subgroups_count, browse.group.groups.size)
+                }
+                val currentEntryCountText = when (browse.group.entries.size) {
+                    0 -> stringResource(R.string.groups_empty_entries_count)
+                    1 -> stringResource(R.string.groups_one_entry_count)
+                    else -> stringResource(R.string.groups_many_entries_count, browse.group.entries.size)
+                }
+                Text(
+                    text = "$currentSubgroupCountText · $currentEntryCountText",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
 
             // 3. Search input: [🔍] Buscar grupo
@@ -222,10 +250,10 @@ fun GroupPickerSheet(
                 singleLine = true,
                 shape = RoundedCornerShape(16.dp),
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color(0xFF16151F),
-                    unfocusedContainerColor = Color(0xFF16151F),
-                    focusedBorderColor = Color(0xFF3E3654),
-                    unfocusedBorderColor = Color(0xFF262335),
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    focusedBorderColor = MaterialTheme.colorScheme.outline,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
                 ),
                 modifier = Modifier.fillMaxWidth()
             )
@@ -237,18 +265,23 @@ fun GroupPickerSheet(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    val subgroupsTitle = if (browse.group.groups.isNotEmpty()) {
+                        "${stringResource(R.string.groups_subgroups_title)} (${browse.group.groups.size})"
+                    } else {
+                        stringResource(R.string.groups_subgroups_title)
+                    }
                     Text(
-                        text = stringResource(R.string.groups_subgroups_title),
+                        text = subgroupsTitle,
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     if (!selectionMode) {
                         Surface(
-                            onClick = { newName = ""; showCreate = true },
+                            onClick = { targetParentGroup = null; newName = ""; showCreate = true },
                             shape = RoundedCornerShape(12.dp),
-                            color = Color(0xFF282338),
-                            border = BorderStroke(1.dp, Color(0xFF3E3654))
+                            color = MaterialTheme.colorScheme.surfaceVariant,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
@@ -259,19 +292,19 @@ fun GroupPickerSheet(
                                     Icon(
                                         Icons.Outlined.Folder,
                                         contentDescription = null,
-                                        tint = Color(0xFFBD9BDB),
+                                        tint = MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.size(18.dp)
                                     )
                                     Icon(
                                         Icons.Default.Add,
                                         contentDescription = null,
-                                        tint = Color(0xFFBD9BDB),
+                                        tint = MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.size(10.dp).padding(start = 2.dp, top = 2.dp)
                                     )
                                 }
                                 Text(
                                     text = stringResource(R.string.groups_new),
-                                    color = Color(0xFFBD9BDB),
+                                    color = MaterialTheme.colorScheme.onSurface,
                                     style = MaterialTheme.typography.labelLarge,
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -306,43 +339,138 @@ fun GroupPickerSheet(
                         }
                     } else {
                         items(browse.group.groups, key = { it.id }) { child ->
+                            val hasChildren = child.groups.isNotEmpty()
+                            val subgroupText = when (child.groups.size) {
+                                0 -> stringResource(R.string.groups_no_subgroups_count)
+                                1 -> stringResource(R.string.groups_one_subgroup_count)
+                                else -> stringResource(R.string.groups_many_subgroups_count, child.groups.size)
+                            }
+                            val entryText = when (child.entries.size) {
+                                0 -> stringResource(R.string.groups_empty_entries_count)
+                                1 -> stringResource(R.string.groups_one_entry_count)
+                                else -> stringResource(R.string.groups_many_entries_count, child.entries.size)
+                            }
+                            val metadataText = "$subgroupText · $entryText"
+
                             Surface(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .testTag("group-enter-${child.id}")
+                                    .testTag(if (hasChildren) "group-enter-${child.id}" else "group-select-${child.id}")
                                     .clickable(enabled = selectable(child)) {
-                                        browseId = child.id
+                                        if (hasChildren) {
+                                            browseId = child.id
+                                        } else {
+                                            onSelect(child.id)
+                                        }
                                     },
                                 shape = RoundedCornerShape(14.dp),
-                                color = Color(0xFF16151F),
-                                border = BorderStroke(1.dp, Color(0xFF262335))
+                                color = MaterialTheme.colorScheme.surface,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                             ) {
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                                        .padding(start = 16.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                                 ) {
                                     Icon(
                                         Icons.Outlined.Folder,
                                         contentDescription = null,
-                                        tint = Color(0xFFBD9BDB),
+                                        tint = MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.size(22.dp)
                                     )
-                                    Text(
-                                        text = child.name.ifBlank { stringResource(R.string.content_root) },
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        fontWeight = FontWeight.Medium,
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                        modifier = Modifier.size(20.dp)
-                                    )
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = child.name.ifBlank { stringResource(R.string.content_root) },
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontWeight = FontWeight.Medium,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        Text(
+                                            text = metadataText,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    if (!selectionMode) {
+                                        Box {
+                                            var menuExpanded by remember { mutableStateOf(false) }
+                                            IconButton(
+                                                onClick = { menuExpanded = true },
+                                                modifier = Modifier
+                                                    .size(36.dp)
+                                                    .testTag("group-more-${child.id}")
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.MoreVert,
+                                                    contentDescription = stringResource(R.string.content_more),
+                                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            }
+                                            DropdownMenu(
+                                                expanded = menuExpanded,
+                                                onDismissRequest = { menuExpanded = false },
+                                                containerColor = MaterialTheme.colorScheme.surface,
+                                                shape = RoundedCornerShape(12.dp)
+                                            ) {
+                                                DropdownMenuItem(
+                                                    text = {
+                                                        Text(
+                                                            text = stringResource(R.string.groups_action_create_subgroup),
+                                                            style = MaterialTheme.typography.bodyMedium,
+                                                            color = MaterialTheme.colorScheme.onSurface
+                                                        )
+                                                    },
+                                                    leadingIcon = {
+                                                        Box(contentAlignment = Alignment.Center) {
+                                                            Icon(
+                                                                Icons.Outlined.Folder,
+                                                                contentDescription = null,
+                                                                tint = MaterialTheme.colorScheme.onSurface,
+                                                                modifier = Modifier.size(20.dp)
+                                                            )
+                                                            Icon(
+                                                                Icons.Default.Add,
+                                                                contentDescription = null,
+                                                                tint = MaterialTheme.colorScheme.onSurface,
+                                                                modifier = Modifier.size(10.dp).padding(start = 2.dp, top = 2.dp)
+                                                            )
+                                                        }
+                                                    },
+                                                    onClick = {
+                                                        menuExpanded = false
+                                                        targetParentGroup = child
+                                                        newName = ""
+                                                        showCreate = true
+                                                    }
+                                                )
+                                                DropdownMenuItem(
+                                                    text = {
+                                                        Text(
+                                                            text = stringResource(R.string.groups_action_rename),
+                                                            style = MaterialTheme.typography.bodyMedium,
+                                                            color = MaterialTheme.colorScheme.onSurface
+                                                        )
+                                                    },
+                                                    leadingIcon = {
+                                                        Icon(
+                                                            imageVector = Icons.Default.Edit,
+                                                            contentDescription = null,
+                                                            tint = MaterialTheme.colorScheme.onSurface,
+                                                            modifier = Modifier.size(18.dp)
+                                                        )
+                                                    },
+                                                    onClick = {
+                                                        menuExpanded = false
+                                                        renamingGroup = child
+                                                        renameText = child.name
+                                                    }
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -365,8 +493,8 @@ fun GroupPickerSheet(
                                         onSelect(option.group.id)
                                     },
                                 shape = RoundedCornerShape(14.dp),
-                                color = Color(0xFF16151F),
-                                border = BorderStroke(1.dp, Color(0xFF262335))
+                                color = MaterialTheme.colorScheme.surface,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
                             ) {
                                 Row(
                                     modifier = Modifier
@@ -378,7 +506,7 @@ fun GroupPickerSheet(
                                     Icon(
                                         Icons.Outlined.Folder,
                                         contentDescription = null,
-                                        tint = Color(0xFFBD9BDB),
+                                        tint = MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.size(22.dp)
                                     )
                                     Column(modifier = Modifier.weight(1f)) {
@@ -414,10 +542,10 @@ fun GroupPickerSheet(
                 enabled = selectable(browse.group),
                 shape = RoundedCornerShape(24.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFBD9BDB),
-                    contentColor = Color(0xFF1D122C),
-                    disabledContainerColor = Color(0xFFBD9BDB).copy(alpha = 0.38f),
-                    disabledContentColor = Color(0xFF1D122C).copy(alpha = 0.38f)
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.38f),
+                    disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.38f)
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -427,7 +555,7 @@ fun GroupPickerSheet(
             ) {
                 Text(
                     text = stringResource(R.string.groups_use_group, currentGroupName),
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -449,13 +577,22 @@ fun GroupPickerSheet(
     }
 
     if (showCreate) {
+        val effectiveParent = targetParentGroup ?: browse.group
         val trimmed = newName.trim()
-        val valid = trimmed.isNotEmpty() && browse.group.groups.none { it.name.equals(trimmed, ignoreCase = true) }
-        Dialog(onDismissRequest = { showCreate = false }) {
+        val valid = trimmed.isNotEmpty() && effectiveParent.groups.none { it.name.equals(trimmed, ignoreCase = true) }
+        val targetPath = remember(root, effectiveParent.id) {
+            findGroupPath(root, effectiveParent.id) ?: listOf(effectiveParent)
+        }
+        val rootLabel = stringResource(R.string.content_root)
+        val parentPath = targetPath.joinToString(" › ") {
+            it.name.ifBlank { rootLabel }
+        }
+
+        Dialog(onDismissRequest = { showCreate = false; targetParentGroup = null }) {
             Surface(
                 shape = RoundedCornerShape(20.dp),
-                color = Color(0xFF171622),
-                border = BorderStroke(1.dp, Color(0xFF2E2B3E)),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp)
@@ -471,7 +608,7 @@ fun GroupPickerSheet(
                             text = stringResource(R.string.groups_new),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = stringResource(R.string.groups_create_subtitle),
@@ -493,10 +630,10 @@ fun GroupPickerSheet(
                             singleLine = true,
                             shape = RoundedCornerShape(16.dp),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = Color(0xFF13121C),
-                                unfocusedContainerColor = Color(0xFF13121C),
-                                focusedBorderColor = Color(0xFF3E3654),
-                                unfocusedBorderColor = Color(0xFF262335),
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
                             ),
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -511,7 +648,8 @@ fun GroupPickerSheet(
 
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = Color(0xFF1E1D2D),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(
@@ -530,18 +668,14 @@ fun GroupPickerSheet(
                                 Icon(
                                     Icons.Outlined.Folder,
                                     contentDescription = null,
-                                    tint = Color(0xFFBD9BDB),
+                                    tint = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.size(18.dp)
                                 )
-                                val rootLabel = stringResource(R.string.content_root)
-                                val parentPath = currentPath.joinToString(" › ") {
-                                    it.name.ifBlank { rootLabel }
-                                }
                                 Text(
                                     text = parentPath,
                                     style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
@@ -552,10 +686,10 @@ fun GroupPickerSheet(
                         horizontalArrangement = Arrangement.End,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        TextButton(onClick = { showCreate = false }) {
+                        TextButton(onClick = { showCreate = false; targetParentGroup = null }) {
                             Text(
                                 text = stringResource(R.string.groups_cancel),
-                                color = Color(0xFFBD9BDB),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
@@ -563,19 +697,125 @@ fun GroupPickerSheet(
                         Button(
                             onClick = {
                                 showCreate = false
-                                onCreate(browse.group.id, trimmed)
+                                onCreate(effectiveParent.id, trimmed)
+                                targetParentGroup = null
                             },
                             enabled = valid,
                             shape = RoundedCornerShape(20.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = Color(0xFF282338),
-                                contentColor = Color(0xFFBD9BDB),
-                                disabledContainerColor = Color(0xFF282338).copy(alpha = 0.5f),
-                                disabledContentColor = Color(0xFFBD9BDB).copy(alpha = 0.38f)
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                                disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.38f),
+                                disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.38f)
                             )
                         ) {
                             Text(
                                 text = stringResource(R.string.groups_create_action),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    renamingGroup?.let { groupToRename ->
+        val trimmedRename = renameText.trim()
+        val parent = locations.firstOrNull { it.group.id == groupToRename.id }?.parentId?.let { pId ->
+            locations.firstOrNull { it.group.id == pId }?.group
+        } ?: root
+        val validRename = trimmedRename.isNotEmpty() &&
+            (trimmedRename.equals(groupToRename.name, ignoreCase = true) ||
+             parent.groups.none { it.id != groupToRename.id && it.name.equals(trimmedRename, ignoreCase = true) })
+
+        Dialog(onDismissRequest = { renamingGroup = null }) {
+            Surface(
+                shape = RoundedCornerShape(20.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text(
+                            text = stringResource(R.string.groups_rename_title),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = stringResource(R.string.groups_rename_subtitle),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = stringResource(R.string.groups_name),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        OutlinedTextField(
+                            value = renameText,
+                            onValueChange = { renameText = it },
+                            placeholder = { Text(stringResource(R.string.groups_placeholder_example)) },
+                            singleLine = true,
+                            shape = RoundedCornerShape(16.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        if (trimmedRename.isNotEmpty() && !validRename) {
+                            Text(
+                                text = stringResource(R.string.groups_duplicate),
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(onClick = { renamingGroup = null }) {
+                            Text(
+                                text = stringResource(R.string.groups_cancel),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                        Spacer(Modifier.size(8.dp))
+                        Button(
+                            onClick = {
+                                onRename(groupToRename.id, trimmedRename)
+                                renamingGroup = null
+                            },
+                            enabled = validRename && trimmedRename != groupToRename.name,
+                            shape = RoundedCornerShape(20.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary,
+                                disabledContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.38f),
+                                disabledContentColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.38f)
+                            )
+                        ) {
+                            Text(
+                                text = stringResource(R.string.groups_rename_save),
                                 fontWeight = FontWeight.Bold
                             )
                         }

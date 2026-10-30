@@ -38,8 +38,7 @@ class EntryFormTest {
 
     @Test fun newEntryKeepsSecondarySectionsClosedUntilRequested() {
         compose.setContent { VaultkTheme { EntryFormScreen("Servicios", {}, {}) } }
-        compose.onNodeWithText("El ✓ guarda la entrada solo en esta sesión. Para conservarla, guarda una copia KDBX.")
-            .assertIsDisplayed()
+        compose.onNodeWithText("Nueva entrada").assertIsDisplayed()
         compose.onNodeWithText("Añadir campo personalizado").assertDoesNotExist()
         compose.onNodeWithText("Añadir adjunto").assertDoesNotExist()
         compose.onNodeWithText("Avanzado").performScrollTo().performClick()

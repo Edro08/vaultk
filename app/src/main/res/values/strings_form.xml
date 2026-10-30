@@ -13,7 +13,7 @@
     <string name="form_password_clear">Limpiar</string>
     <string name="form_password_clear_confirm">Sí, limpiar</string>
     <string name="form_password_clear_title">¿Limpiar contraseña?</string>
-    <string name="form_password_clear_message">Se borrará la contraseña de este formulario. El cambio no se guardará hasta que pulses ✓.</string>
+    <string name="form_password_clear_message">Se borrará la contraseña de este formulario. El cambio no se guardará hasta que pulses Guardar.</string>
     <string name="generator_title">Generador de contraseñas</string>
     <string name="generator_length">Longitud</string>
     <string name="generator_length_value">Longitud · %1$s</string>
@@ -42,6 +42,10 @@
     <string name="form_remove_tag">Quitar etiqueta %1$s</string>
     <string name="form_expiry">Caducidad</string>
     <string name="form_select_date">Seleccionar fecha</string>
+    <string name="form_location">Ubicación</string>
+    <string name="form_location_subtitle">Grupo donde se guardará la entrada</string>
+    <string name="form_notes">Notas</string>
+    <string name="form_notes_subtitle">Información adicional y texto libre</string>
     <string name="form_notes_hint">Añade información adicional sobre esta entrada…</string>
     <string name="form_notes_count">%1$d/%2$d</string>
     <string name="form_advanced">Avanzado</string>
@@ -73,6 +77,12 @@
     <string name="form_remove_attachment">Quitar adjunto %1$s</string>
     <string name="form_unnamed_attachment">Archivo adjunto</string>
     <string name="form_properties_subtitle">Información del sistema (solo lectura)</string>
+    <string name="form_property_group_label">Grupo</string>
+    <string name="form_property_created_label">Fecha de creación</string>
+    <string name="form_property_modified_label">Última modificación</string>
+    <string name="form_property_uuid_label">Identificador (UUID)</string>
+    <string name="form_property_pending">Pendiente al guardar</string>
+    <string name="form_property_uuid_copied">UUID copiado al portapapeles</string>
     <string name="form_property_group">Grupo: %1$s</string>
     <string name="form_property_created">Creado: —</string>
     <string name="form_property_modified">Modificado: —</string>

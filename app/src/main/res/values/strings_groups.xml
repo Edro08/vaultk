@@ -3,6 +3,12 @@
     <string name="groups_explore_title">Explorar grupos</string>
     <string name="groups_use_group">Usar grupo %1$s</string>
     <string name="groups_subgroups_title">Subgrupos</string>
+    <string name="groups_no_subgroups_count">Sin subgrupos</string>
+    <string name="groups_one_subgroup_count">1 subgrupo</string>
+    <string name="groups_many_subgroups_count">%1$d subgrupos</string>
+    <string name="groups_empty_entries_count">Vacío</string>
+    <string name="groups_one_entry_count">1 entrada</string>
+    <string name="groups_many_entries_count">%1$d entradas</string>
     <string name="groups_search">Buscar grupo</string>
     <string name="groups_parent">Volver al grupo superior</string>
     <string name="groups_current">Grupo actual</string>
@@ -27,4 +33,9 @@
     <string name="groups_discard_message">Los grupos creados en esta sesión se perderán al cerrar el vault.</string>
     <string name="groups_discard_confirm">Descartar y cerrar</string>
     <string name="groups_discard_cancel">Seguir en el vault</string>
+    <string name="groups_action_create_subgroup">Crear subgrupo</string>
+    <string name="groups_action_rename">Cambiar nombre</string>
+    <string name="groups_rename_title">Cambiar nombre</string>
+    <string name="groups_rename_subtitle">Introduce el nuevo nombre para este grupo.</string>
+    <string name="groups_rename_save">Guardar</string>
 </resources>

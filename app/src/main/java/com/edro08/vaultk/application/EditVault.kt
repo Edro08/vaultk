@@ -13,6 +13,7 @@ import com.edro08.vaultk.domain.removeEntry
 import com.edro08.vaultk.domain.replaceEntry
 import com.edro08.vaultk.domain.searchEntries
 import com.edro08.vaultk.domain.withChild
+import com.edro08.vaultk.domain.withRenamedGroup
 import java.time.Instant
 import java.util.UUID
 
@@ -74,6 +75,9 @@ class EditVault(private val values: VaultValueFactory,
         val id = newId()
         return root.withChild(parentId, VaultGroup(id, name, emptyList(), emptyList())) to id
     }
+
+    fun renameGroup(root: VaultGroup, groupId: String, newName: String): VaultGroup =
+        root.withRenamedGroup(groupId, newName)
 
     fun move(root: VaultGroup, sourceId: String, destinationId: String, entryId: String): VaultGroup =
         root.moveEntry(sourceId, destinationId, entryId)

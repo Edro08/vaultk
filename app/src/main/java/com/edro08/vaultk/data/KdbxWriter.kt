@@ -30,12 +30,19 @@ class KdbxWriter(private val reader: KdbxReader = KdbxReader()) {
             groups[source.id] = target
             source.groups.forEach { child ->
                 val existing = target.groups.firstOrNull { it.uuid.toString() == child.id }
-                val group = existing ?: run {
+                val group = existing?.also {
+                    if (it.name != child.name) {
+                        it.name = child.name
+                    }
+                } ?: run {
                     require(child.id.startsWith("draft:")) { "Missing original group" }
                     target.addGroup(child.name)
                 }
                 applyGroups(child, group)
             }
+        }
+        if (changed.root.name.isNotBlank() && database.rootGroup.name != changed.root.name) {
+            database.rootGroup.name = changed.root.name
         }
         applyGroups(changed.root, database.rootGroup)
         val desired = mutableMapOf<String, Pair<Group, VaultEntry>>()

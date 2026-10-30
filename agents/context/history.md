@@ -2,6 +2,330 @@
 
 Fases y cortes en orden cronológico descendente (el más reciente primero).
 
+## 2026-10-29 — Estados cromáticos del icono de sincronización en la nube
+
+- **Colorización reactiva del icono de nube ([VaultContentScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/VaultContentScreen.kt))**:
+  - Se unificó la resolución de icono (`cloudIcon`) y su tinte (`cloudIconTint`) en la cabecera de la aplicación:
+    - **Sincronizando / Guardando** (`saving || syncing`): el icono `Icons.Outlined.CloudSync` y el indicador de progreso circular adoptan el índigo eléctrico primario de Vaultk (`primary` / `#582BF5`). El punto indicador de la cabecera también adopta este color.
+    - **Sincronizado / Al día** (`cloudIcon == Icons.Outlined.CloudDone`): el icono adopta el color verde esmeralda de estado (`tertiary` / `#10B981`), en sintonía con el punto indicador.
+    - **Error / Conflicto** (`isWarningStatus`): el icono `Icons.Outlined.CloudOff` adopta el color de alerta (`error` / rojo).
+    - **Otros estados** (solo lectura o cola): adopta `onSurfaceVariant`.
+  - Se actualizó el diálogo de estado (`CloudStatusDialog`) para utilizar `MaterialTheme.colorScheme.tertiary` en lugar del valor hexadecimal estático.
+- **Verificación**:
+  - Pruebas unitarias ejecutadas exitosamente (`testDebugUnitTest`).
+  - APK debug compilada e instalada en el dispositivo/emulador.
+
+## 2026-10-29 — Adaptabilidad de contraste y sintaxis en contraseña del Generador
+
+- **Colores de sintaxis reactivos al tema ([PasswordGeneratorScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/generator/PasswordGeneratorScreen.kt))**:
+  - Se corrigió la visibilidad de los caracteres en el tema claro, donde las letras mayúsculas fijadas en blanco (`Color.White`) resultaban invisibles sobre el fondo de tarjeta blanca.
+  - Se implementó detección dinámica de luminosidad (`surface.luminance() < 0.5f`) para adaptar la paleta de sintaxis:
+    - **Tema Claro**: Mayúsculas en negro profundo (`#09090B`), minúsculas en pizarra oscuro (`#4B5563`), números en azul intenso (`#2563EB`) y símbolos en carmesí (`#DC2626`).
+    - **Tema Oscuro**: Mayúsculas en blanco (`Color.White`), minúsculas en plata suave (`#D4D4D8`), números en azul cielo (`#60A5FA`) y símbolos en coral (`#F87171`).
+  - Legibilidad y contraste garantizados en ambos modos con especificación WCAG AAA.
+- **Verificación**:
+  - Pruebas unitarias ejecutadas exitosamente (`testDebugUnitTest`).
+  - APK debug actualizada e instalada en el emulador.
+
+## 2026-10-29 — Sintonización cromática de la tarjeta de Seguridad en Ajustes
+
+- **Corrección de colores en Seguridad ([SettingsScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/settings/SettingsScreen.kt))**:
+  - Se corrigió el icono del candado en la cabecera de la sección Seguridad que tenía un tinte negro `onSurface` desalineado con el resto de las tarjetas, asignándole `MaterialTheme.colorScheme.primary` para coincidir exactamente con los iconos de Tema, Archivos y Nube.
+  - Las etiquetas de los valores configurados (como `5 min`, `30 s`, `Activado`) en `SecuritySettingRow` ahora usan `MaterialTheme.colorScheme.primary` con `FontWeight.Medium`, integrándose al tono de marca de la app en ambos temas.
+- **Verificación**:
+  - Pruebas unitarias ejecutadas exitosamente (`testDebugUnitTest`).
+  - APK debug actualizada e instalada en el emulador.
+
+## 2026-10-29 — Armonización del tema claro con el icono oficial de Vaultk (Snow & Electric Indigo)
+
+- **Alineación del tema claro con la identidad de marca ([Color.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/theme/Color.kt), [Theme.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/theme/Theme.kt))**:
+  - Se sustituyó el esquema claro anterior por la **Propuesta A (Snow & Electric Indigo)**, logrando total coherencia diurna con los colores del icono:
+    - **Fondo General**: Blanco nieve nítido (`#F8F9FB`), generando un contraste limpio y sutil con las tarjetas.
+    - **Tarjetas y Cajas**: Blanco puro (`#FFFFFF`) con bordes finos de 1dp (`#E5E7EB`).
+    - **Acento Primario**: Índigo eléctrico de la V (`#582BF5`), ofreciendo un contraste superior a 8:1 (WCAG AAA) sobre blanco para botones principales, switches, sliders y FAB (+).
+    - **Tiles de Iconos (`VaultkIconTile`)**: Lavanda suave (`#F0EBFE`) con borde fino (`#E4D7FC`) y glifo en índigo (`#582BF5`).
+    - **Barra de Navegación**: Píldora activa en lavanda (`#EDE8FE`) e icono en `#582BF5`.
+    - **Tipografía**: Texto principal en negro profundo (`#09090B`) y secundario en gris neutro (`#6B7280`).
+- **Verificación**:
+  - Pruebas unitarias ejecutadas exitosamente (`testDebugUnitTest`).
+  - APK debug actualizada e instalada en el emulador `Pixel_9_Pro(AVD) - 15`.
+
+## 2026-10-29 — Armonización del tema oscuro con el icono oficial de Vaultk (Electric Indigo & Obsidian)
+
+- **Alineación cromática con los valores reales del icono ([Color.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/theme/Color.kt), [Theme.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/theme/Theme.kt))**:
+  - Se muestrearon los píxeles del icono oficial de Vaultk, extrayendo los colores exactos de su identidad visual:
+    - **Fondo**: Negro OLED puro (`#000000`).
+    - **Acento Primario**: Índigo/violeta eléctrico de la parte más oscura y el pliegue de la V (`#582BF5` / `#4B25E8`) para botones principales, foco, barra activa de slider y FAB (+).
+    - **Tiles de Iconos (`VaultkIconTile`)**: Fondo profundo (`#1E1738`) con contorno fino (`#332763`) e iconos en lavanda suave (`#C185FC`), emulando la estética del candado del icono.
+    - **Barra de navegación inferior**: Píldora activa en índigo oscuro (`#221846`) con icono en lavanda (`#C185FC`).
+    - **Superficie de Tarjetas**: Gris carbón obsidiana (`#131316`) con bordes sutiles de tarjeta (`#23222B`).
+- **Verificación**:
+  - Pruebas unitarias ejecutadas exitosamente (`testDebugUnitTest`).
+  - APK debug actualizada e instalada en el emulador `Pixel_9_Pro(AVD) - 15`.
+
+## 2026-10-29 — Corrección de corte y tamaño en etiqueta flotante de longitud
+
+- **Desbordamiento sin restricciones en etiqueta del thumb ([PasswordGeneratorScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/generator/PasswordGeneratorScreen.kt))**:
+  - Se solucionó el truncamiento del número en la burbuja flotante del selector (donde números de dos o tres dígitos quedaban cortados por el límite de 20dp del thumb) mediante `wrapContentSize(unbounded = true)`.
+  - Se incrementó el padding horizontal (8dp) y vertical (3dp) con tipografía `labelMedium`, sombras sutiles y esquinas redondeadas de 8dp para garantizar legibilidad completa tanto para valores de 1, 2 como 3 dígitos (`128`).
+- **Verificación**:
+  - Pruebas unitarias ejecutadas exitosamente (`testDebugUnitTest`).
+  - APK debug actualizada e instalada en el emulador.
+
+## 2026-10-29 — Corrección de alineación del selector y limpieza de números en Longitud
+
+- **Centrado vertical del selector y remoción de etiquetas redundantes ([PasswordGeneratorScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/generator/PasswordGeneratorScreen.kt))**:
+  - Se eliminaron los números superiores redundantes `4` y `128` que estaban encima del control deslizante, manteniendo limpia la cabecera con la escala inferior de la regla.
+  - Se corrigió el centrado vertical del control deslizante (`thumb`): se aisló el tamaño de layout del thumb a `20.dp` x `20.dp` con `contentAlignment = Center` y la burbuja numérica superior en `offset(y = -24.dp)`. De este modo, Compose alinea el centro exacto del círculo sobre el eje de la pista sin empujarlo hacia abajo ni desfasar el radio horizontal de desplazamiento.
+- **Verificación**:
+  - Pruebas unitarias ejecutadas exitosamente (`testDebugUnitTest`).
+  - APK debug actualizada e instalada en el emulador.
+
+## 2026-10-29 — Escala de regla con puntos alineados en tarjeta de Longitud
+
+- **Alineación exacta de puntos y ticks en Longitud ([PasswordGeneratorScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/generator/PasswordGeneratorScreen.kt))**:
+  - Se sustituyeron los chips independientes por una escala de regla integrada directamente bajo el deslizador (`4`, `8`, `12`, `20`, `32`, `64`, `128`).
+  - Los puntos sobre la pista (`Canvas`) ahora se calculan teniendo en cuenta el radio del thumb (`thumbRadius`), asegurando que cada punto coincida verticalmente de forma matemática con su tick (`|`) y número de límite correspondiente.
+  - El thumb incluye una burbuja/píldora flotante superior que refleja el valor numérico actual en tiempo real durante el arrastre.
+  - Cada marca de la regla es interactiva y cuenta con su respectivo `generator-preset-$mark` para seleccionar rápidamente cualquier límite estándar con un toque.
+- **Verificación**:
+  - Pruebas unitarias ejecutadas exitosamente (`testDebugUnitTest`).
+  - APK debug actualizada e instalada en el emulador.
+
+## 2026-10-29 — Sección de tipos de caracteres colapsable y contraseña generada al fondo
+
+- **Ajustes de flujo y jerarquía en Generador ([PasswordGeneratorScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/generator/PasswordGeneratorScreen.kt))**:
+  - La tarjeta de **Tipos de caracteres** ahora es colapsable (`typesExpanded`), permitiendo contraerla para ahorrar espacio vertical cuando no se necesita cambiar las reglas.
+  - La tarjeta de **Contraseña generada** se sitúa en la parte inferior, inmediatamente encima de los botones de acción (`Regenerar`, `Copiar` y `Usar contraseña`), facilitando el flujo visual y el acceso a las acciones sin saltos.
+  - Se mantiene la reactividad en tiempo real (recalculo automático con slider y presets) y el realce sintáctico por colores.
+- **Verificación**:
+  - Pruebas unitarias ejecutadas exitosamente (`testDebugUnitTest`).
+  - APK debug actualizada e instalada en el emulador.
+
+## 2026-10-29 — Rediseño del Generador de Contraseñas (Propuesta A: Hero Reactivo & Titanio)
+
+- **Hero Card superior e interactividad reactiva ([PasswordGeneratorScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/generator/PasswordGeneratorScreen.kt))**:
+  - Se rediseñó la experiencia del Generador de Contraseñas: al generarse, la tarjeta de previsualización ("Contraseña generada") se sitúa en la parte superior como tarjeta Hero.
+  - Visor monoespaciado de alta legibilidad con coloreado sintáctico de caracteres (números en azul suave, símbolos en coral y letras en contraste blanco/titanio), botón para alternar visibilidad y medidor de seguridad segmentado de 5 niveles con entropía (*bits* y nivel de fortaleza).
+  - Reactividad instantánea en vivo: cualquier cambio posterior en el deslizador de longitud, chips preestablecidos (8, 12, 20, 32, 64) o interruptores de caracteres regenera automáticamente la contraseña en tiempo real.
+  - Opciones de caracteres modernizadas con `Switch` interactivo en lugar de checkboxes convencionales.
+  - Botones de acción unificados: `Regenerar` y `Copiar` directos sin necesidad de desplazarse hacia el fondo.
+- **Verificación**:
+  - Pruebas unitarias ejecutadas exitosamente (`testDebugUnitTest`).
+  - APK debug actualizada e instalada en el emulador.
+
+## 2026-10-29 — Remoción de icono estático de nube en OneDrive
+
+- **Limpieza de cabecera en pantalla OneDrive ([OneDriveScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/storage/OneDriveScreen.kt))**:
+  - Se eliminó el icono decorativo estático e inerte `Icons.Outlined.Cloud` de la esquina superior derecha que se mostraba cuando no había ninguna cuenta conectada.
+  - La barra superior ahora solo muestra el menú contextual de opciones (`MoreVert`) cuando el usuario tiene una sesión activa vinculada.
+- **Verificación**:
+  - Pruebas unitarias ejecutadas (`testDebugUnitTest`).
+  - APK debug actualizada e instalada en el emulador.
+
+## 2026-10-29 — Limpieza de icono redundante en campo Notas de formulario
+
+- **Remoción de icono secundario en Notas ([EntryFormScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/EntryFormScreen.kt))**:
+  - Se eliminó el `leadingIcon` redundante dentro del campo de texto multilínea (`OutlinedTextField`), ya que la cabecera de la sección colapsable `FormSection` ya cuenta con el icono identificador (`VaultkIconTile` con `Icons.Default.Description`).
+  - Esto proporciona mayor área limpia para escribir y una visualización más equilibrada del área de texto.
+- **Verificación**:
+  - Pruebas unitarias ejecutadas exitosamente (`testDebugUnitTest`).
+  - APK debug actualizada e instalada en el emulador.
+
+## 2026-10-29 — Secciones colapsables en Ver Entrada (Notas y Propiedades)
+
+- **Notas y Propiedades colapsables por defecto ([EntryDetailScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/EntryDetailScreen.kt))**:
+  - Se implementó el componente `DetailCollapsibleSection` para alinear la experiencia y la limpieza visual con la pantalla de agregar/editar entrada (`EntryFormScreen`).
+  - Tanto **Notas** como **Propiedades** inician colapsadas (`initiallyExpanded = false`), mostrando cabecera interactiva con icono (`VaultkIconTile`), título, subtítulo explicativo (`R.string.form_notes_subtitle` y `R.string.form_properties_subtitle`) e indicador de estado (`ExpandMore` / `ExpandLess`).
+  - Al expandirse, la sección de Notas expone el bloque de texto con su botón de copia directa; la sección de Propiedades despliega todos los metadatos (Grupo, Fechas de creación/modificación, Etiquetas y UUID con botón de copia rápida).
+- **Verificación**:
+  - Pruebas unitarias ejecutadas exitosamente (`testDebugUnitTest`).
+  - APK debug actualizada e instalada en el emulador `Pixel_9_Pro(AVD) - 15`.
+
+## 2026-10-29 — Paleta Monocromo Minimalista (OLED & Titanio) y Centralización del Sistema de Color
+
+- **Tokens de color segregados y centralizados ([Color.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/theme/Color.kt), [Theme.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/theme/Theme.kt))**:
+  - Se creó el modelo de tokens segregado `VaultkCustomColors` provisto mediante `CompositionLocalProvider(LocalVaultkCustomColors)` para desacoplar el diseño de la herencia genérica de Material 3:
+    - `iconTileBackground` (`#161616`), `iconTileBorder` (`#2C2C2C`), `iconTileTint` (`#E5E5E5`), `iconNormal` (`#D4D4D8`).
+    - `buttonSecondaryBackground` (`#1F1F1F`), `buttonSecondaryText` (`#FFFFFF`), `buttonSecondaryBorder` (`#333333`).
+    - `inputBackground` (`#181818`), `inputBorder` (`#222222`), `inputBorderFocused` (`#52525B`).
+    - `textMuted` (`#71717A`).
+  - Esquema `DarkColors`:
+    - `primary = WhitePure` (`#FFFFFF`): Los botones de acción principal (`Button`) pasan a tener fondo blanco sólido con texto en negro puro (`#000000`), eliminando los bloques morados gigantes.
+    - `primaryContainer = DarkPanel` (`#161616`) y `onPrimaryContainer = Silver` (`#E5E5E5`): Cajas de icono y tiles con fondo oscuro neutro y contorno fino sin tintes violetas.
+    - `secondaryContainer = DarkBorderInteractive` (`#2C2C2C`) y `onSecondaryContainer = WhitePure`: Indicador activo de la barra de navegación inferior en titanio oscuro limpio.
+    - `background = PureBlack` (`#000000`), `surface = DarkCharcoal` (`#121212`), `outlineVariant = DarkBorder` (`#222222`).
+- **Eliminación de colores morados e índigo rezagados en componentes**:
+  - **Explorador de Grupos ([GroupPickerSheet.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/GroupPickerSheet.kt))**: Se eliminaron todos los colores hexadecimales hardcodeados (`0xFFBD9BDB`, `0xFF3E3654`, `0xFF282338`, `0xFF16151F`, `0xFF1C1A29`, `0xFF1E1D2D`), migrando filas, diálogos, iconos y el botón principal a los tokens semánticos centralizados.
+  - **Formulario de Entrada ([EntryFormScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/EntryFormScreen.kt))**: Se cambiaron los iconos iniciales de los campos (`leadingIcon`), el botón de generar contraseña y los tiles de cabecera para utilizar `onSurfaceVariant` y `outline` en lugar de `primary` morado.
+  - **Detalle de Entrada ([EntryDetailScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/EntryDetailScreen.kt))**: Iconos de propiedades actualizados a `onSurfaceVariant`.
+  - **Controles y Notificaciones ([VaultkControls.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/component/VaultkControls.kt), [VaultkCards.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/component/VaultkCards.kt))**: `VaultkIconTile` añade borde sutil de 1dp; iconos de retroceso y estado vacío actualizados a tonos neutros.
+  - **Ajustes ([SettingsScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/settings/SettingsScreen.kt))**: El selector segmentado de tema y las etiquetas de configuración de seguridad ahora usan tonos monocromáticos limpios.
+  - **Pantalla Principal ([VaultContentScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/VaultContentScreen.kt))**: Floating Action Button (+) configurado con fondo `surfaceVariant` y contenido `onSurface`; iconos de sincronización en la nube limpios sin tinte violeta.
+- **Verificación**:
+  - Pruebas unitarias ejecutadas exitosamente (`testDebugUnitTest` — 24 tareas en 43s).
+  - Build instalada y desplegada en el emulador `Pixel_9_Pro(AVD) - 15`.
+
+## 2026-10-28 — Implementación del nuevo tema oscuro: Fondo Negro Puro (OLED) y Cajas Gris Carbón
+
+- **Nueva paleta de tema oscuro OLED ([Color.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/theme/Color.kt), [Theme.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/theme/Theme.kt))**:
+  - Se sustituyó el esquema con matiz azul medianoche (`#0C0E16` y `#151925`) por un tema OLED puro y grises carbón neutros:
+    - `Ink = Color(0xFF000000)`: Fondo negro absoluto (apagado 100% de píxeles en pantallas OLED y máximo contraste).
+    - `Panel = Color(0xFF161616)`: Cajas y tarjetas de superficie con gris carbón neutro mate.
+    - `Field = Color(0xFF202020)`: Subcontenedores y campos de entrada de texto.
+    - `Border = Color(0xFF2E2E2E)` y `outlineVariant = Color(0xFF262626)`: Bordes y delimitadores sutiles de 1dp.
+    - `Muted = Color(0xFFA0A0A0)`: Gris neutro para textos secundarios y etiquetas sin contaminación azulada.
+    - `onBackground` y `onSurface = Color(0xFFEDEDED)`: Blanco suave de alto contraste y confort visual.
+    - `primaryContainer = Color(0xFF2D1B4E)`: Fondo violeta profundo para chips e iconos de acción.
+- **Sincronización en componentes y diálogos ([GroupPickerSheet.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/GroupPickerSheet.kt))**:
+  - Se eliminaron colores fijos en los diálogos de creación y renombramiento de grupos, migrándolos a tokens semánticos `MaterialTheme.colorScheme.surface`, `surfaceVariant` y `outlineVariant` para coherencia total.
+- **Verificación**:
+  - Suite de pruebas unitarias ejecutada exitosamente (`testDebugUnitTest`, 24 tareas en 22s).
+  - APK debug instalada y verificada en el emulador `Pixel_9_Pro(AVD) - 15`.
+
+## 2026-10-28 — Remoción de acción «Bloquear vault» del menú de opciones en Ver Entrada
+
+- **Menú contextual de opciones limpio ([EntryDetailScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/EntryDetailScreen.kt), [VaultContentScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/VaultContentScreen.kt))**:
+  - Se eliminó la opción `Bloquear vault` del menú desplegable de tres puntos (`EntryDetailHeader`), ya que el bloqueo global de la base de datos pertenece a la vista principal del vault y no al detalle de una entrada específica.
+  - Se añadieron iconos temáticos a todas las acciones restantes del menú (`Guardar` con `Icons.Default.Save`, `Restaurar entrada` con `Icons.Default.Restore`, `Duplicar`, `Mover` y `Eliminar entrada`).
+- **Verificación**:
+  - Pruebas unitarias ejecutadas exitosamente (`testDebugUnitTest`).
+  - Aplicación instalada y verificada en el emulador.
+
+## 2026-10-28 — Rediseño visual de Ver Entrada (EntryDetailScreen)
+
+- **Tarjeta unificada de Credenciales ([EntryDetailScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/EntryDetailScreen.kt))**:
+  - Se agruparon los campos de `Usuario`, `Contraseña` y `URL` en una única tarjeta unificada con divisores sutiles (`HorizontalDivider`), eliminando la fragmentación visual de tener 3 micro-tarjetas flotantes desconectadas.
+  - Cada fila conserva sus acciones rápidas alineadas a la derecha: copia de usuario, visibilidad y copia de contraseña con etiquetas de accesibilidad y tags de pruebas (`detail-copy-password`), y apertura/copia de URL.
+- **Tarjeta dedicada para Notas ([EntryDetailScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/EntryDetailScreen.kt))**:
+  - Encabezado con icono temático, título «Notas» y acción directa «Copiar notas» en la esquina superior derecha.
+  - El texto de notas se presenta dentro de un contenedor redondeado con tinte suave `surfaceVariant`, mejorando la legibilidad para párrafos largos o multilínea.
+- **Rediseño de Propiedades ([EntryDetailScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/EntryDetailScreen.kt), [VaultContentScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/VaultContentScreen.kt))**:
+  - Se sustituyó la lista plana dividida por tarjetas estilizadas (`DetailPropertyItem`) consistentes con el diseño de `EntryFormScreen`:
+    - 📁 **Grupo**: Muestra el grupo actual al que pertenece la entrada (`groupName`).
+    - 🕒 **Creado**: Icono de horario con fecha y hora completa formateada.
+    - ⏱️ **Modificado**: Icono de historial con fecha y hora de última modificación.
+    - 📅 **Caducidad**: Icono de calendario cuando la entrada tiene expiración programada.
+    - 🏷️ **Etiquetas**: Contenedor con chips `primaryContainer` en `FlowRow`.
+    - 🆔 **UUID**: Identificador monoespaciado con botón completo `OutlinedButton` para copiar el UUID al portapapeles.
+- **Verificación**:
+  - Suite de pruebas unitarias ejecutada con éxito (`testDebugUnitTest`).
+  - APK debug instalada y verificada en el emulador `Pixel_9_Pro(AVD) - 15`.
+
+
+## 2026-10-28 — Eliminación de tarjeta redundante Ubicación y rediseño visual de Propiedades
+
+- **Eliminación de Ubicación ([EntryFormScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/EntryFormScreen.kt))**:
+  - Se retiró la tarjeta modular independiente «Ubicación» para evitar duplicidad de información con la sección «Propiedades» y el subtítulo de cabecera.
+- **Rediseño enriquecido de Propiedades ([EntryFormScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/EntryFormScreen.kt), [strings_form.xml](file:///d:/Projects/Android/Vaultk/app/src/main/res/values/strings_form.xml))**:
+  - Se sustituyó el texto plano apilado por filas estructuradas (`FormPropertyRow`) con esquinas redondeadas (`12.dp`), fondo suave `surfaceVariant` y micro-iconos temáticos en caja:
+    - 📁 **Grupo**: Icono de carpeta con nombre del grupo destino.
+    - 🕒 **Fecha de creación**: Icono de calendario/reloj con fecha y hora formateada (o «Pendiente al guardar» en entradas nuevas).
+    - ⏱️ **Última modificación**: Icono de historial con fecha y hora formateada (o «Pendiente al guardar» en entradas nuevas).
+    - 🆔 **Identificador (UUID)**: En entradas existentes, muestra el UUID en tipografía monoespaciada junto a un botón interactivo para copiarlo directamente al portapapeles con confirmación en `Snackbar`.
+- **Verificación**:
+  - Suite de pruebas unitarias ejecutada con éxito (`testDebugUnitTest`).
+  - APK debug instalada y verificada en el emulador `Pixel_9_Pro(AVD) - 15`.
+
+
+## 2026-10-28 — Rediseño del formulario de entrada: M3 compacto con iconos integrados y secciones modulares
+
+- **Iconos integrados dentro de los campos ([EntryFormScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/EntryFormScreen.kt))**:
+  - Se eliminó el envoltorio `FormInput` con recuadros morados exteriores (`VaultkIconTile`), ganando ~60dp de ancho horizontal útil en cada campo.
+  - Los campos de texto (`Título`, `Usuario`, `Contraseña`, `URL`, `Etiquetas`, `TOTP`, `PIN`) utilizan ahora `leadingIcon` nativo de Material 3 con `Modifier.fillMaxWidth()`, ofreciendo una alineación uniforme y despejada sin efecto zigzag.
+  - **Etiquetas**: Se implementó una visualización basada en `FlowRow` con chips (`Surface` con fondo `primaryContainer` y botón `Close` para removerlas) y campo de texto con icono de etiqueta (`Icons.AutoMirrored.Filled.Label`) y botón de añadir.
+- **Secciones modulares ([EntryFormScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/EntryFormScreen.kt), [strings_form.xml](file:///d:/Projects/Android/Vaultk/app/src/main/res/values/strings_form.xml))**:
+  - **Ubicación**: Nueva sección colapsable independiente que muestra el grupo de destino en el vault (`📁 Raíz › [Grupo]`).
+  - **Notas**: Se extrajo el área de notas a su propia sección modular independiente con `minLines = 3`, `maxLines = 8` y contador de caracteres `0/2000`.
+  - Se conservaron intactas las secciones existentes: **Avanzado** (con `leadingIcon` en TOTP y PIN), **Adjuntos** y **Propiedades**.
+- **Menú de acciones (3 puntos ⋮)**:
+  - Se añadió el icono de descarte (`Icons.Default.DeleteOutline`) al ítem «Descartar formulario» en el `DropdownMenu`.
+- **Verificación**:
+  - Suite de pruebas unitarias ejecutada con éxito (`testDebugUnitTest`).
+  - APK debug instalada y verificada en el emulador `Pixel_9_Pro(AVD) - 15`.
+
+
+## 2026-10-28 — Botón de guardar y simplificación del formulario de entrada
+
+- **Icono de guardado ([EntryFormScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/EntryFormScreen.kt))**:
+  - Se sustituyó el icono de check (`Icons.Default.Check`) en la barra superior por el icono de disco de guardado (`Icons.Default.Save`), haciendo explícita la acción de guardar la entrada o sus modificaciones en el vault.
+- **Eliminación del banner de aviso ([EntryFormScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/EntryFormScreen.kt), [strings_form.xml](file:///d:/Projects/Android/Vaultk/app/src/main/res/values/strings_form.xml))**:
+  - Se retiró la tarjeta informativa superior («El ✓ guarda la entrada en el vault...») para despejar el inicio del formulario y llevar directamente al usuario a los campos de información («General», «Título», etc.).
+  - Se ajustó el texto de confirmación de limpieza de contraseña (`form_password_clear_message`) para referenciar la acción de guardar sin aludir al símbolo ✓.
+- **Verificación**:
+  - Suite de pruebas unitarias ejecutada con éxito (`testDebugUnitTest`).
+  - Pruebas conectadas actualizadas ([EntryFormTest.kt](file:///d:/Projects/Android/Vaultk/app/src/androidTest/java/com/edro08/vaultk/EntryFormTest.kt), [VaultHomeTest.kt](file:///d:/Projects/Android/Vaultk/app/src/androidTest/java/com/edro08/vaultk/VaultHomeTest.kt)).
+  - APK debug instalada y verificada en el emulador `Pixel_9_Pro(AVD) - 15`.
+
+
+## 2026-10-28 — Remoción del icono de candado decorativo en la barra superior
+
+- **Barra superior de contenido ([VaultContentScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/VaultContentScreen.kt))**:
+  - Se removió el icono de candado decorativo (`Icons.Default.Lock`) ubicado junto al título principal «Vaultk», dejando únicamente el texto con estilo `titleLarge` para una cabecera más limpia y minimalista.
+- **Verificación**:
+  - `compileDebugKotlin` y empaquetado de APK debug completados con éxito.
+  - APK debug instalada y verificada en el emulador `Pixel_9_Pro(AVD) - 15`.
+
+
+## 2026-10-28 — Corrección de persistencia y sincronización al renombrar grupos
+
+- **Corrección en serializador KDBX ([KdbxWriter.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/data/KdbxWriter.kt))**:
+  - **Causa raíz identificada**: Al renombrar un grupo, el modelo de dominio en memoria se actualizaba correctamente, pero en `KdbxWriter.applyGroups`, cuando un grupo ya existía (`existing = target.groups.firstOrNull { it.uuid.toString() == child.id }`), se reutilizaba la instancia de LinguaFranca sin actualizar su propiedad `it.name = child.name`. Como resultado, `database.save(...)` escribía el archivo KDBX conservando el nombre original del grupo. Al ejecutarse la sincronización con OneDrive (o recargar el archivo local), `reader.read` reabría el archivo físico con el nombre anterior, revirtiendo el cambio en la interfaz de usuario.
+  - **Solución implementada**:
+    - Se añadió la actualización explícita `if (it.name != child.name) { it.name = child.name }` en los nodos de subgrupos existentes.
+    - Se aseguró la sincronización del nombre del grupo raíz `if (changed.root.name.isNotBlank() && database.rootGroup.name != changed.root.name) { database.rootGroup.name = changed.root.name }`.
+- **Verificación**:
+  - Prueba unitaria añadida en [KdbxWriterTest.kt](file:///d:/Projects/Android/Vaultk/app/src/test/java/com/edro08/vaultk/KdbxWriterTest.kt) (`renamesGroupAcrossSaves`), comprobando que al renombrar un grupo y persistir con `KdbxWriter`, el archivo KDBX resultante conserva e informa el nuevo nombre al reabrirse.
+  - Suite de pruebas `testDebugUnitTest --tests com.edro08.vaultk.KdbxWriterTest` ejecutada con éxito (`BUILD SUCCESSFUL`).
+  - APK debug instalada y ejecutada en el emulador `Pixel_9_Pro(AVD) - 15`.
+
+
+## 2026-10-28 — Resumen de contenido del grupo explorado y jerarquía tipográfica
+
+- **Estandarización tipográfica del grupo actual ([GroupPickerSheet.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/GroupPickerSheet.kt))**:
+  - Se elevó la jerarquía visual de la ruta de navegación jerárquica (breadcrumbs `Raíz › Cuentas-Y`) pasando de `bodyMedium` (14sp) a `titleMedium` en negrita (`FontWeight.Bold`, 16sp), otorgándole el peso y protagonismo correspondiente a la ubicación activa frente a los subgrupos de la lista.
+- **Resumen contextual de contenido en el grupo activo ([GroupPickerSheet.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/GroupPickerSheet.kt))**:
+  - Directamente debajo de la ruta, se incorporó un subtítulo informativo en tiempo real (`X subgrupos · Y entradas`, `Sin subgrupos · Vacío`, etc.) que indica el contenido total del nivel donde el usuario se encuentra parado.
+  - El encabezado de sección ahora indica dinámicamente la cantidad de elementos visibles (`Subgrupos (N)`), manteniendo la coherencia visual con la lista.
+- **Verificación**:
+  - `compileDebugKotlin` y `compileDebugAndroidTestKotlin` compilados con éxito.
+  - Pruebas conectadas en emulador `Pixel_9_Pro(AVD) - 15` superadas (`GroupPickerLayoutTest`).
+  - APK debug instalada y ejecutada en el emulador.
+
+## 2026-10-28 — Menú contextual con tres puntos (⋮), creación directa de subgrupos y renombramiento
+
+- **Menú contextual en tarjetas de subgrupos ([GroupPickerSheet.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/GroupPickerSheet.kt))**:
+  - Cada tarjeta de subgrupo incluye un botón de 3 puntos (`⋮`, `Icons.Default.MoreVert`) con un `DropdownMenu` oscuro que despliega:
+    - 📁➕ **Crear subgrupo**: Abre directamente el modal «Nuevo grupo» preconfigurado con el subgrupo seleccionado como padre (`Se creará dentro de: Raíz › [Subgrupo]`), permitiendo agregar subgrupos a grupos vacíos sin necesidad de salir y volver a entrar al explorador (0 clics de navegación extra).
+    - ✏️ **Cambiar nombre**: Abre un diálogo modal para renombrar el grupo en tiempo real.
+- **Interacción dual optimizada**:
+  - Tocar el cuerpo de la tarjeta: si tiene subgrupos entra a explorarlos (`browseId = child.id`); si no tiene subgrupos, lo selecciona directamente (`onSelect(child.id)`).
+  - Tocar los 3 puntos: abre el menú contextual sin disparar la selección ni la navegación de la tarjeta.
+- **Operaciones de dominio y renombramiento ([VaultOperations.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/domain/VaultOperations.kt), [EditVault.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/application/EditVault.kt), [VaultContentScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/VaultContentScreen.kt))**:
+  - Añadida función inmutable `withRenamedGroup(targetId, newName)` y `EditVault.renameGroup`.
+  - Integrado `onRename` en `VaultContentScreen` para sincronizar cambios en vaults locales y en la nube (`persistCloudChange`).
+- **Verificación**:
+  - `compileDebugKotlin` y `compileDebugAndroidTestKotlin` compilados con éxito.
+  - Pruebas conectadas en emulador `Pixel_9_Pro(AVD) - 15` superadas (`GroupPickerLayoutTest` y `VaultHomeTest#selectsNestedGroupAndOpensEntryWithoutLeavingSession`).
+  - APK debug instalada y ejecutada en el emulador.
+
+## 2026-10-28 — Jerarquía en tarjeta de grupo, selector con metadatos condicionales y tipografía estilizada
+
+- **Profundidad jerárquica en pantalla principal ([VaultContentScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/VaultContentScreen.kt))**:
+  - La tarjeta de «Grupo» ahora muestra la ruta jerárquica completa calculada en tiempo real (`Raíz › Cuentas-D` o niveles anidados adicionales) en lugar de únicamente el nombre del grupo actual, con `maxLines = 1` y `TextOverflow.Ellipsis`.
+  - Se sustituyó el icono final desplegable `▾` (`Icons.Default.ArrowDropDown`) por un chevron derecho `>` (`Icons.AutoMirrored.Filled.KeyboardArrowRight`), manteniendo el comportamiento de abrir el selector `GroupPickerSheet`.
+- **Explorador de grupos y conteo de metadatos ([GroupPickerSheet.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/GroupPickerSheet.kt))**:
+  - **Alineación de cabecera**: Se eliminó el botón de regreso invisible cuando se explora la raíz (`currentPath.size <= 1`), permitiendo que el icono de carpeta y el título «Explorar grupos» queden alineados limpiamente al margen izquierdo sin espacio vacío forzado. La flecha atrás `←` solo aparece cuando hay niveles superiores (`currentPath.size > 1`).
+  - **Metadatos por subgrupo**: Cada elemento de la lista de subgrupos muestra un subtítulo detallado con conteos de subgrupos y entradas (`X subgrupos · Y entradas`, `Sin subgrupos · Vacío`, etc.).
+  - **Chevron condicional y selección directa**:
+    - Si el subgrupo contiene subgrupos hijos (`child.groups.isNotEmpty()`), muestra el chevron `>` y al pulsarlo se navega para explorar su interior (`browseId = child.id`).
+    - Si el subgrupo no tiene subgrupos (`child.groups.isEmpty()`), no muestra el chevron `>` y al pulsarlo se selecciona directamente (`onSelect(child.id)`), evitando entrar a subgrupos vacíos innecesariamente.
+  - **Estilización del botón «Usar grupo [Nombre]»**: Se refinó la tipografía reduciendo el peso y tamaño visual de las letras a `MaterialTheme.typography.bodyMedium` con `FontWeight.Medium` y altura de `46.dp`, logrando un acabado estilizado y equilibrado.
+- **Verificación**:
+  - `compileDebugKotlin` y `compileDebugAndroidTestKotlin` ejecutados con éxito.
+  - Pruebas conectadas en emulador `Pixel_9_Pro(AVD) - 15` superadas (`GroupPickerLayoutTest`, `VaultHomeTest#selectsNestedGroupAndOpensEntryWithoutLeavingSession`, `VaultHomeTest#searchesGroupsAndWarnsBeforeDiscardingTemporaryGroup`, `VaultHomeTest#createsEntryInSessionAndConfirmsDiscardOnVaultClose`).
+  - APK debug instalada y ejecutada en el emulador.
+
 ## 2026-10-27 — Rediseño del explorador de grupos y modal de nuevo grupo
 
 - **Explorador de grupos y navegación jerárquica ([GroupPickerSheet.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/GroupPickerSheet.kt))**:

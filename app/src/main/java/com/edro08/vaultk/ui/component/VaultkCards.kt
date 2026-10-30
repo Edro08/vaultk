@@ -25,11 +25,14 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import com.edro08.vaultk.ui.theme.VaultkSpacing
 
+import com.edro08.vaultk.ui.theme.vaultkCustomColors
+
 @Composable
 fun VaultkIconTile(icon: ImageVector, contentDescription: String?, modifier: Modifier = Modifier) {
     Card(
         modifier = modifier.size(48.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        border = BorderStroke(1.dp, MaterialTheme.vaultkCustomColors.iconTileBorder),
         shape = MaterialTheme.shapes.small,
     ) {
         androidx.compose.foundation.layout.Box(

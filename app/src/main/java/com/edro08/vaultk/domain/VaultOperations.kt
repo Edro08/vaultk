@@ -27,5 +27,9 @@ fun VaultGroup.withChild(parentId: String, child: VaultGroup): VaultGroup =
     if (id == parentId) copy(groups = groups + child)
     else copy(groups = groups.map { it.withChild(parentId, child) })
 
+fun VaultGroup.withRenamedGroup(targetId: String, newName: String): VaultGroup =
+    if (id == targetId) copy(name = newName)
+    else copy(groups = groups.map { it.withRenamedGroup(targetId, newName) })
+
 fun VaultGroup.isInside(groupId: String, ancestorId: String): Boolean =
     groupsAndSelf().firstOrNull { it.id == ancestorId }?.groupsAndSelf()?.any { it.id == groupId } == true

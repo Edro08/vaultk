@@ -3,6 +3,8 @@ package com.edro08.vaultk.ui.screen.vault
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,15 +24,25 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Key
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Restore
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.outlined.DateRange
+import androidx.compose.material.icons.outlined.Fingerprint
+import androidx.compose.material.icons.outlined.History
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -38,6 +50,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -56,6 +69,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.edro08.vaultk.R
@@ -91,16 +106,16 @@ fun EntryDetailHeader(entry: VaultEntry, groupName: String, onBack: () -> Unit,
                     Icon(Icons.Default.MoreVert, stringResource(R.string.content_more))
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                    if (onLock != null) DropdownMenuItem(text = { Text(stringResource(R.string.content_lock)) },
-                        onClick = { menuOpen = false; onLock() })
                     if (onSave != null) DropdownMenuItem(
                         text = { Text(stringResource(R.string.content_save_action)) },
+                        leadingIcon = { Icon(Icons.Default.Save, null) },
                         onClick = { menuOpen = false; onSave() })
                     DropdownMenuItem(text = { Text(stringResource(R.string.detail_duplicate)) },
                         leadingIcon = { Icon(Icons.Default.ContentCopy, null) }, onClick = { menuOpen = false; onDuplicate() })
                     DropdownMenuItem(text = { Text(stringResource(R.string.detail_move)) },
                         leadingIcon = { Icon(Icons.AutoMirrored.Filled.OpenInNew, null) }, onClick = { menuOpen = false; onMove() })
                     if (onRestore != null) DropdownMenuItem(text = { Text(stringResource(R.string.detail_restore)) },
+                        leadingIcon = { Icon(Icons.Default.Restore, null) },
                         onClick = { menuOpen = false; onRestore() })
                     DropdownMenuItem(text = { Text(stringResource(R.string.detail_delete)) },
                         leadingIcon = { Icon(Icons.Default.Delete, null) }, onClick = { menuOpen = false; onDelete() })
@@ -110,8 +125,13 @@ fun EntryDetailHeader(entry: VaultEntry, groupName: String, onBack: () -> Unit,
 }
 
 @Composable
-fun EntryDetailScreen(entry: VaultEntry, modifier: Modifier = Modifier, showDetails: Boolean = true,
-    onMessage: (String) -> Unit) {
+fun EntryDetailScreen(
+    entry: VaultEntry,
+    modifier: Modifier = Modifier,
+    showDetails: Boolean = true,
+    groupName: String = "",
+    onMessage: (String) -> Unit
+) {
     val context = LocalContext.current
     val copyCredential = LocalCopyCredential.current
     val scope = rememberCoroutineScope()
@@ -137,68 +157,111 @@ fun EntryDetailScreen(entry: VaultEntry, modifier: Modifier = Modifier, showDeta
     LazyColumn(modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(VaultkSpacing.normal),
         verticalArrangement = Arrangement.spacedBy(VaultkSpacing.medium)) {
-        if (entry.username.isNotBlank()) item {
-            DetailSection(stringResource(R.string.content_username_label), Icons.Default.Person,
-                actions = {
-                    DetailIconAction(stringResource(R.string.detail_copy_username), Icons.Default.ContentCopy) {
-                        copy(entry.username)
+        val hasCredentials = entry.username.isNotBlank() || entry.password != null || entry.url.isNotBlank()
+        if (hasCredentials) item {
+            VaultkCard {
+                Column(Modifier.fillMaxWidth()) {
+                    var needsDivider = false
+                    if (entry.username.isNotBlank()) {
+                        CredentialRow(
+                            title = stringResource(R.string.content_username_label),
+                            icon = Icons.Default.Person,
+                            actions = {
+                                DetailIconAction(stringResource(R.string.detail_copy_username), Icons.Default.ContentCopy) {
+                                    copy(entry.username)
+                                }
+                            }
+                        ) {
+                            Text(entry.username, style = MaterialTheme.typography.bodyLarge,
+                                maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        }
+                        needsDivider = true
                     }
-                }) {
-                Text(entry.username, style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 2, overflow = TextOverflow.Ellipsis)
-            }
-        }
-        if (entry.password != null) item {
-            DetailSection(stringResource(R.string.detail_password), Icons.Default.Key,
-                actions = {
-                    DetailIconAction(stringResource(if (passwordVisible) R.string.detail_hide_password else R.string.detail_show_password),
-                        if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility) {
-                        passwordVisible = !passwordVisible
+                    if (entry.password != null) {
+                        if (needsDivider) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        CredentialRow(
+                            title = stringResource(R.string.detail_password),
+                            icon = Icons.Default.Key,
+                            actions = {
+                                DetailIconAction(
+                                    label = stringResource(if (passwordVisible) R.string.detail_hide_password else R.string.detail_show_password),
+                                    icon = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility
+                                ) {
+                                    passwordVisible = !passwordVisible
+                                }
+                                DetailIconAction(
+                                    label = stringResource(R.string.detail_copy_password),
+                                    icon = Icons.Default.ContentCopy,
+                                    modifier = Modifier.testTag("detail-copy-password")
+                                ) {
+                                    val chars = entry.password.valueAsChars
+                                    try { copy(String(chars), sensitive = true) } finally { chars.fill('\u0000') }
+                                }
+                            }
+                        ) {
+                            if (passwordVisible) {
+                                val chars = entry.password.valueAsChars
+                                val visiblePassword = String(chars)
+                                chars.fill('\u0000')
+                                Text(visiblePassword, style = MaterialTheme.typography.bodyLarge,
+                                    maxLines = 2, overflow = TextOverflow.Ellipsis)
+                            } else {
+                                Text(stringResource(R.string.detail_hidden_password),
+                                    style = MaterialTheme.typography.bodyLarge)
+                            }
+                        }
+                        needsDivider = true
                     }
-                    DetailIconAction(stringResource(R.string.detail_copy_password), Icons.Default.ContentCopy,
-                        modifier = Modifier.testTag("detail-copy-password")) {
-                        val chars = entry.password.valueAsChars
-                        try { copy(String(chars), sensitive = true) } finally { chars.fill('\u0000') }
+                    if (entry.url.isNotBlank()) {
+                        if (needsDivider) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        CredentialRow(
+                            title = stringResource(R.string.content_url_label),
+                            icon = Icons.Default.Link,
+                            actions = {
+                                DetailIconAction(stringResource(R.string.detail_open_url), Icons.AutoMirrored.Filled.OpenInNew) {
+                                    val uri = runCatching { Uri.parse(entry.url) }.getOrNull()
+                                    if (uri?.scheme?.lowercase(Locale.ROOT) !in listOf("https", "http") || uri?.host.isNullOrBlank()) {
+                                        onMessage(invalidUrl)
+                                    } else try {
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+                                    } catch (_: ActivityNotFoundException) { onMessage(noBrowser) }
+                                    catch (_: SecurityException) { onMessage(noBrowser) }
+                                }
+                                DetailIconAction(stringResource(R.string.detail_copy_url), Icons.Default.ContentCopy) {
+                                    copy(entry.url)
+                                }
+                            }
+                        ) {
+                            Text(entry.url, style = MaterialTheme.typography.bodyLarge,
+                                maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        }
                     }
-                }) {
-                if (passwordVisible) {
-                    val chars = entry.password.valueAsChars
-                    val visiblePassword = String(chars)
-                    chars.fill('\u0000')
-                    Text(visiblePassword, style = MaterialTheme.typography.bodyLarge,
-                        maxLines = 2, overflow = TextOverflow.Ellipsis)
-                } else Text(stringResource(R.string.detail_hidden_password),
-                    style = MaterialTheme.typography.bodyLarge)
-            }
-        }
-        if (entry.url.isNotBlank()) item {
-            DetailSection(stringResource(R.string.content_url_label), Icons.Default.Link,
-                actions = {
-                    DetailIconAction(stringResource(R.string.detail_open_url), Icons.AutoMirrored.Filled.OpenInNew) {
-                        val uri = runCatching { Uri.parse(entry.url) }.getOrNull()
-                        if (uri?.scheme?.lowercase(Locale.ROOT) !in listOf("https", "http") || uri?.host.isNullOrBlank()) {
-                            onMessage(invalidUrl)
-                        } else try {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, uri))
-                        } catch (_: ActivityNotFoundException) { onMessage(noBrowser) }
-                        catch (_: SecurityException) { onMessage(noBrowser) }
-                    }
-                    DetailIconAction(stringResource(R.string.detail_copy_url), Icons.Default.ContentCopy) {
-                        copy(entry.url)
-                    }
-                }) {
-                Text(entry.url, style = MaterialTheme.typography.bodyLarge,
-                    maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
             }
         }
         if (entry.notes.isNotBlank()) item {
-            DetailSection(stringResource(R.string.content_notes_label), Icons.AutoMirrored.Filled.Notes,
-                actions = {
+            DetailCollapsibleSection(
+                title = stringResource(R.string.content_notes_label),
+                subtitle = stringResource(R.string.form_notes_subtitle),
+                icon = Icons.Default.Description,
+                initiallyExpanded = false,
+                headerAction = {
                     DetailIconAction(stringResource(R.string.detail_copy_notes), Icons.Default.ContentCopy) {
                         copy(entry.notes)
                     }
-                }) {
-                Text(entry.notes, style = MaterialTheme.typography.bodyLarge)
+                }
+            ) {
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = entry.notes,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(VaultkSpacing.medium)
+                    )
+                }
             }
         }
         if (otp != null) item {
@@ -249,41 +312,254 @@ fun EntryDetailScreen(entry: VaultEntry, modifier: Modifier = Modifier, showDeta
             }
         }
         if (showDetails) item {
-            PropertiesSection(stringResource(R.string.detail_properties), Icons.Default.Info) {
+            DetailCollapsibleSection(
+                title = stringResource(R.string.detail_properties),
+                subtitle = stringResource(R.string.form_properties_subtitle),
+                icon = Icons.Default.Info,
+                initiallyExpanded = false
+            ) {
+                val dateFormat = remember {
+                    DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
+                        .withLocale(Locale.getDefault())
+                        .withZone(ZoneId.systemDefault())
+                }
+
+                if (groupName.isNotBlank()) {
+                    DetailPropertyItem(
+                        icon = Icons.Default.Folder,
+                        label = stringResource(R.string.form_property_group_label),
+                        value = groupName
+                    )
+                }
+
                 entry.created?.let { instant ->
-                    val formatted = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
-                        .withLocale(Locale.getDefault()).withZone(ZoneId.systemDefault()).format(instant)
-                    PropertyRow(stringResource(R.string.detail_created_label), formatted)
+                    DetailPropertyItem(
+                        icon = Icons.Outlined.Schedule,
+                        label = stringResource(R.string.detail_created_label).removeSuffix(":"),
+                        value = dateFormat.format(instant)
+                    )
                 }
+
                 entry.modified?.let { instant ->
-                    val formatted = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
-                        .withLocale(Locale.getDefault()).withZone(ZoneId.systemDefault()).format(instant)
-                    PropertyRow(stringResource(R.string.detail_modified_label), formatted)
+                    DetailPropertyItem(
+                        icon = Icons.Outlined.History,
+                        label = stringResource(R.string.detail_modified_label).removeSuffix(":"),
+                        value = dateFormat.format(instant)
+                    )
                 }
+
                 entry.expiresAt?.let { instant ->
-                    val formatted = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)
-                        .withLocale(Locale.getDefault()).withZone(ZoneId.systemDefault()).format(instant)
-                    PropertyRow(stringResource(R.string.detail_expires_label), formatted)
+                    DetailPropertyItem(
+                        icon = Icons.Outlined.DateRange,
+                        label = stringResource(R.string.detail_expires_label).removeSuffix(":"),
+                        value = dateFormat.format(instant)
+                    )
                 }
+
                 if (entry.tags.isNotEmpty()) {
-                    PropertyRow(stringResource(R.string.detail_tags)) {
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(VaultkSpacing.small),
-                            verticalArrangement = Arrangement.spacedBy(VaultkSpacing.small)) {
-                            entry.tags.forEach { tag ->
-                                Surface(color = MaterialTheme.colorScheme.primaryContainer,
-                                    shape = RoundedCornerShape(VaultkSpacing.small)) {
-                                    Text(tag, modifier = Modifier.padding(horizontal = VaultkSpacing.medium,
-                                        vertical = VaultkSpacing.small), color = MaterialTheme.colorScheme.onPrimaryContainer)
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = VaultkSpacing.medium, vertical = VaultkSpacing.small),
+                            verticalArrangement = Arrangement.spacedBy(VaultkSpacing.small)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.detail_tags),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(VaultkSpacing.small),
+                                verticalArrangement = Arrangement.spacedBy(VaultkSpacing.small)
+                            ) {
+                                entry.tags.forEach { tag ->
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.primaryContainer,
+                                        shape = RoundedCornerShape(VaultkSpacing.small)
+                                    ) {
+                                        Text(
+                                            text = tag,
+                                            modifier = Modifier.padding(
+                                                horizontal = VaultkSpacing.medium,
+                                                vertical = VaultkSpacing.small
+                                            ),
+                                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
-                PropertyRow(stringResource(R.string.detail_uuid_label), entry.id)
-                TextButton(onClick = { copy(entry.id) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-                    Icon(Icons.Default.ContentCopy, contentDescription = null)
-                    Text(stringResource(R.string.detail_copy_uuid), modifier = Modifier.padding(start = VaultkSpacing.small))
+
+                DetailPropertyItem(
+                    icon = Icons.Outlined.Fingerprint,
+                    label = stringResource(R.string.detail_uuid_label).removeSuffix(":"),
+                    value = entry.id,
+                    isMonospace = true
+                )
+
+                OutlinedButton(
+                    onClick = { copy(entry.id, sensitive = false) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 44.dp),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Icon(
+                        Icons.Default.ContentCopy,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = stringResource(R.string.detail_copy_uuid),
+                        modifier = Modifier.padding(start = VaultkSpacing.small)
+                    )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DetailCollapsibleSection(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    initiallyExpanded: Boolean = false,
+    headerAction: (@Composable () -> Unit)? = null,
+    content: @Composable () -> Unit
+) {
+    var expanded by remember(title, initiallyExpanded) { mutableStateOf(initiallyExpanded) }
+    VaultkCard {
+        Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded }
+                    .padding(VaultkSpacing.medium),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(VaultkSpacing.medium)
+            ) {
+                VaultkIconTile(icon, null)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(title, style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (headerAction != null && expanded) {
+                    headerAction()
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = stringResource(if (expanded) R.string.form_collapse else R.string.form_expand),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (expanded) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = VaultkSpacing.normal)
+                        .padding(bottom = VaultkSpacing.normal),
+                    verticalArrangement = Arrangement.spacedBy(VaultkSpacing.medium)
+                ) {
+                    content()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CredentialRow(
+    title: String,
+    icon: ImageVector,
+    actions: (@Composable () -> Unit)? = null,
+    content: @Composable () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = VaultkSpacing.normal, vertical = VaultkSpacing.medium),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(VaultkSpacing.medium)
+    ) {
+        VaultkIconTile(icon, null)
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            content()
+        }
+        if (actions != null) {
+            Row(verticalAlignment = Alignment.CenterVertically) { actions() }
+        }
+    }
+}
+
+@Composable
+private fun DetailPropertyItem(
+    icon: ImageVector,
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    isMonospace: Boolean = false
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+        shape = RoundedCornerShape(12.dp),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = VaultkSpacing.medium, vertical = VaultkSpacing.small),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(VaultkSpacing.medium)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = value,
+                    style = if (isMonospace) MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace)
+                    else MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
     }
