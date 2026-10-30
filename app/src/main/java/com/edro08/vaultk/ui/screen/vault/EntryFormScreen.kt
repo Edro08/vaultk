@@ -536,8 +536,12 @@ fun EntryFormScreen(groupName: String, onSave: (EntryFormData) -> Unit, onBack: 
                         Text(attachment.name, modifier = Modifier.weight(1f), maxLines = 2,
                             overflow = TextOverflow.Ellipsis)
                         TextButton(enabled = attachment.uri != null, onClick = {
+                            val uri = runCatching { Uri.parse(attachment.uri) }.getOrNull()
+                            if (uri?.scheme != "content") {
+                                scope.launch { snackbar.showSnackbar(attachmentError) }
+                            } else
                             try {
-                                context.startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(Uri.parse(attachment.uri), attachment.mimeType)
+                                context.startActivity(Intent(Intent.ACTION_VIEW).setDataAndType(uri, attachment.mimeType)
                                     .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
                             } catch (_: ActivityNotFoundException) { scope.launch { snackbar.showSnackbar(attachmentError) } }
                             catch (_: SecurityException) { scope.launch { snackbar.showSnackbar(attachmentError) } }

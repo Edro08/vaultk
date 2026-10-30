@@ -300,9 +300,12 @@ fun EntryDetailScreen(
                             overflow = TextOverflow.Ellipsis)
                         if (attachment.uri != null) DetailIconAction(stringResource(R.string.form_open_attachment),
                             Icons.AutoMirrored.Filled.OpenInNew) {
-                            try {
+                            val uri = runCatching { Uri.parse(attachment.uri) }.getOrNull()
+                            if (uri?.scheme != "content") {
+                                onMessage(noBrowser)
+                            } else try {
                                 context.startActivity(Intent(Intent.ACTION_VIEW)
-                                    .setDataAndType(Uri.parse(attachment.uri), attachment.mimeType)
+                                    .setDataAndType(uri, attachment.mimeType)
                                     .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION))
                             } catch (_: ActivityNotFoundException) { onMessage(noBrowser) }
                             catch (_: SecurityException) { onMessage(noBrowser) }
