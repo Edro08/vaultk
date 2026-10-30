@@ -24,6 +24,7 @@ import com.edro08.vaultk.application.security.ManageBiometricUnlock
 import com.edro08.vaultk.application.settings.ManagePreferences
 import com.edro08.vaultk.application.settings.ManageSessionSecurity
 import com.edro08.vaultk.application.vault.ManageRecentVaults
+import com.edro08.vaultk.application.security.VaultSessionController
 import com.edro08.vaultk.data.cloud.MsalCloudAccountSession
 import com.edro08.vaultk.data.cloud.PrivateCloudCopyStore
 import com.edro08.vaultk.data.security.BiometricKeyStore
@@ -50,6 +51,7 @@ class VaultkGraph(context: Context) {
     val sessionSecurity = ManageSessionSecurity(SessionSecurity(context))
     val browseLocalVaults = BrowseLocalVaults(localFiles)
     val copyCredential = CopyCredential(AndroidCredentialClipboard(context))
+    val sessionController = VaultSessionController(copyCredential)
     val editVault = EditVault(KdbxVaultValueFactory())
 
     private val reader = KdbxReader()

@@ -36,7 +36,7 @@ import com.edro08.vaultk.ui.uri
 import com.edro08.vaultk.app.VaultkGraph
 import com.edro08.vaultk.ui.LocalCopyCredential
 import androidx.compose.runtime.CompositionLocalProvider
-import com.edro08.vaultk.application.security.VaultIdleTimer
+import com.edro08.vaultk.application.security.VaultSessionController
 import com.edro08.vaultk.domain.settings.Appearance
 import com.edro08.vaultk.domain.settings.FileAccessMode
 import com.edro08.vaultk.domain.vault.VaultConflictException
@@ -79,11 +79,11 @@ import java.util.Date
 import javax.crypto.Cipher
 
 class MainActivity : FragmentActivity() {
-    private val vaultIdleTimer = VaultIdleTimer()
+    private var sessionControllerRef: VaultSessionController? = null
 
     override fun onUserInteraction() {
         super.onUserInteraction()
-        vaultIdleTimer.interact(SystemClock.elapsedRealtime())
+        sessionControllerRef?.idleTimer?.interact(SystemClock.elapsedRealtime())
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -95,6 +95,8 @@ class MainActivity : FragmentActivity() {
         setRecentsScreenshotEnabled(false)
         setContent {
             val graph = remember { VaultkGraph(applicationContext) }
+            val sessionController = graph.sessionController
+            sessionControllerRef = sessionController
             val store = graph.recentVaults
             val session = graph.sessionSecurity
             var timeoutSeconds by remember { mutableStateOf(session.timeoutSeconds) }
@@ -148,21 +150,14 @@ class MainActivity : FragmentActivity() {
             var pickerError by remember { mutableStateOf<String?>(null) }
             var unavailableRecent by remember { mutableStateOf<VaultDocument?>(null) }
             var pendingRelinkUri by rememberSaveable { mutableStateOf<String?>(null) }
-            var sessionKey by remember { mutableStateOf<CharArray?>(null) }
-            var baseline by remember { mutableStateOf<ByteArray?>(null) }
             var externalFormPickerActive by remember { mutableStateOf(false) }
             var saveJob by remember { mutableStateOf<Job?>(null) }
             val lockVault: () -> Unit = {
-                vaultIdleTimer.stop()
                 openJob?.cancel()
                 saveJob?.cancel()
-                sessionKey?.fill('\u0000')
-                sessionKey = null
-                baseline?.fill(0)
-                baseline = null
+                sessionController.lock()
                 opened = null
                 externalFormPickerActive = false
-                graph.copyCredential.clearOwned()
             }
             DisposableEffect(Unit) {
                 val observer = LifecycleEventObserver { _, event ->
@@ -185,8 +180,10 @@ class MainActivity : FragmentActivity() {
                 if (opened != null) {
                     while (true) {
                         delay(1000)
-                        if (vaultIdleTimer.hasTimedOut(SystemClock.elapsedRealtime(), timeoutSeconds)) {
-                            lockVault()
+                        if (sessionController.checkTimeout(SystemClock.elapsedRealtime(), timeoutSeconds)) {
+                            openJob?.cancel()
+                            saveJob?.cancel()
+                            opened = null
                             break
                         }
                     }
@@ -194,10 +191,20 @@ class MainActivity : FragmentActivity() {
             }
             DisposableEffect(opened) {
                 val observer = LifecycleEventObserver { _, event ->
-                    if (event == Lifecycle.Event.ON_STOP && opened != null &&
-                        timeoutSeconds == 0 && !externalFormPickerActive) lockVault()
-                    if (event == Lifecycle.Event.ON_RESUME && opened != null && !opening &&
-                        vaultIdleTimer.hasTimedOut(SystemClock.elapsedRealtime(), timeoutSeconds)) lockVault()
+                    if (event == Lifecycle.Event.ON_STOP && opened != null) {
+                        if (sessionController.handleStop(timeoutSeconds, externalFormPickerActive)) {
+                            openJob?.cancel()
+                            saveJob?.cancel()
+                            opened = null
+                        }
+                    }
+                    if (event == Lifecycle.Event.ON_RESUME && opened != null && !opening) {
+                        if (sessionController.checkTimeout(SystemClock.elapsedRealtime(), timeoutSeconds)) {
+                            openJob?.cancel()
+                            saveJob?.cancel()
+                            opened = null
+                        }
+                    }
                 }
                 lifecycle.addObserver(observer)
                 onDispose { lifecycle.removeObserver(observer) }
@@ -211,12 +218,9 @@ class MainActivity : FragmentActivity() {
                         if (document.uri.scheme != "file") throw SecurityException()
                         val (content, hash) = openLocalVault(VaultId(requireNotNull(document.uri.path)), key)
                         if (selected?.uri == document.uri) {
-                            sessionKey?.fill('\u0000')
-                            sessionKey = key.copyOf()
-                            baseline = hash
+                            sessionController.start(content, key, hash, SystemClock.elapsedRealtime())
                             selected = store.markOpened(document)
                             recent = store.recent()
-                            vaultIdleTimer.start(SystemClock.elapsedRealtime())
                             opened = content
                         }
                     } catch (error: CancellationException) {
@@ -249,12 +253,8 @@ class MainActivity : FragmentActivity() {
                     try {
                         val (content, hash) = graph.cloudCopies.openVersioned(copy.id, key)
                         if (cloudSelected?.id == copy.id) {
-                            sessionKey?.fill('\u0000')
-                            sessionKey = key.copyOf()
-                            baseline?.fill(0)
-                            baseline = hash
+                            sessionController.start(content, key, hash, SystemClock.elapsedRealtime())
                             cloudSelected = graph.cloudCopies.selected() ?: copy
-                            vaultIdleTimer.start(SystemClock.elapsedRealtime())
                             opened = content
                         }
                     } catch (error: CancellationException) {
@@ -516,7 +516,7 @@ class MainActivity : FragmentActivity() {
                         onTimeoutChange = {
                             session.timeoutSeconds = it
                             timeoutSeconds = it
-                            vaultIdleTimer.start(SystemClock.elapsedRealtime())
+                            sessionController.touch(SystemClock.elapsedRealtime())
                         },
                         appearance = appearance,
                         onAppearanceChange = { settings.appearance = it; appearance = it },
@@ -550,24 +550,21 @@ class MainActivity : FragmentActivity() {
                         onRemoteDownloaded = {
                             val updated = graph.cloudCopies.selected()
                             cloudSelected = updated
-                            val key = sessionKey?.copyOf()
-                            if (updated != null && key != null) {
-                                scope.launch {
-                                    try {
-                                        val (reloaded, hash) = graph.cloudCopies.openVersioned(updated.id, key)
-                                        if (cloudSelected?.id == updated.id && opened != null) {
-                                            baseline?.fill(0)
-                                            baseline = hash
-                                            opened = reloaded
+                            if (updated != null) {
+                                val reloadResult = sessionController.withKey { key ->
+                                    scope.launch {
+                                        try {
+                                            val (reloaded, hash) = graph.cloudCopies.openVersioned(updated.id, key)
+                                            if (cloudSelected?.id == updated.id && opened != null) {
+                                                sessionController.updateContent(reloaded, hash)
+                                                opened = reloaded
+                                            }
+                                        } catch (_: Exception) {
+                                            lockVault()
                                         }
-                                    } catch (_: Exception) {
-                                        lockVault()
-                                    } finally {
-                                        key.fill('\u0000')
                                     }
                                 }
-                            } else {
-                                key?.fill('\u0000')
+                                if (reloadResult == null) lockVault()
                             }
                         },
                         onViewStatus = if (isCloud) {
@@ -588,34 +585,31 @@ class MainActivity : FragmentActivity() {
                             { changed, complete ->
                                 val copy = cloudSelected
                                 val original = opened
-                                val key = sessionKey?.copyOf()
-                                val hash = baseline?.copyOf()
-                                if (copy == null || original == null || key == null || hash == null) {
-                                    key?.fill('\u0000')
-                                    hash?.fill(0)
+                                if (copy == null || original == null) {
                                     complete(getString(R.string.save_error_write))
                                 } else {
-                                    saveJob = scope.launch {
-                                        try {
-                                            val (saved, fingerprint) = graph.saveCloudCopyLocally(
-                                                copy.id, hash, key, original, changed)
-                                            baseline?.fill(0)
-                                            baseline = fingerprint
-                                            opened = saved
-                                            cloudSelected = graph.cloudCopies.selected()
-                                            complete(null)
-                                        } catch (_: InvalidVaultKeyException) {
-                                            complete(getString(R.string.unlock_error_key))
-                                        } catch (_: VaultConflictException) {
-                                            complete(getString(R.string.save_error_conflict))
-                                        } catch (error: CancellationException) {
-                                            throw error
-                                        } catch (_: Exception) {
-                                            complete(getString(R.string.save_error_write))
-                                        } finally {
-                                            key.fill('\u0000')
-                                            hash.fill(0)
+                                    val saveResult = sessionController.withKeyAndBaseline { key, hash ->
+                                        saveJob = scope.launch {
+                                            try {
+                                                val (saved, fingerprint) = graph.saveCloudCopyLocally(
+                                                    copy.id, hash, key, original, changed)
+                                                sessionController.updateContent(saved, fingerprint)
+                                                opened = saved
+                                                cloudSelected = graph.cloudCopies.selected()
+                                                complete(null)
+                                            } catch (_: InvalidVaultKeyException) {
+                                                complete(getString(R.string.unlock_error_key))
+                                            } catch (_: VaultConflictException) {
+                                                complete(getString(R.string.save_error_conflict))
+                                            } catch (error: CancellationException) {
+                                                throw error
+                                            } catch (_: Exception) {
+                                                complete(getString(R.string.save_error_write))
+                                            }
                                         }
+                                    }
+                                    if (saveResult == null) {
+                                        complete(getString(R.string.save_error_write))
                                     }
                                 }
                             }
@@ -624,34 +618,32 @@ class MainActivity : FragmentActivity() {
                             { changed, progress, complete ->
                                 val source = selected
                                 val original = opened
-                                val key = sessionKey?.copyOf()
-                                val hash = baseline?.copyOf()
                                 if (source?.uri?.scheme != "file" || !localFiles.canRead(VaultId(requireNotNull(source.uri.path))) ||
-                                    original == null || key == null || hash == null) {
-                                    key?.fill('\u0000')
+                                    original == null) {
                                     complete(getString(R.string.save_error_write))
                                 } else {
-                                    saveJob = scope.launch {
-                                        try {
-                                            val (saved, fingerprint) = saveLocalVault(
-                                                VaultId(requireNotNull(source.uri.path)), hash, key, original, changed
-                                            ) { update -> runOnUiThread { progress(update) } }
-                                            baseline?.fill(0)
-                                            baseline = fingerprint
-                                            opened = saved
-                                            complete(null)
-                                        } catch (_: InvalidVaultKeyException) {
-                                            complete(getString(R.string.unlock_error_key))
-                                        } catch (_: VaultConflictException) {
-                                            complete(getString(R.string.save_error_conflict))
-                                        } catch (error: CancellationException) {
-                                            throw error
-                                        } catch (_: Exception) {
-                                            complete(getString(R.string.save_error_write))
-                                        } finally {
-                                            key.fill('\u0000')
-                                            hash.fill(0)
+                                    val saveResult = sessionController.withKeyAndBaseline { key, hash ->
+                                        saveJob = scope.launch {
+                                            try {
+                                                val (saved, fingerprint) = saveLocalVault(
+                                                    VaultId(requireNotNull(source.uri.path)), hash, key, original, changed
+                                                ) { update -> runOnUiThread { progress(update) } }
+                                                sessionController.updateContent(saved, fingerprint)
+                                                opened = saved
+                                                complete(null)
+                                            } catch (_: InvalidVaultKeyException) {
+                                                complete(getString(R.string.unlock_error_key))
+                                            } catch (_: VaultConflictException) {
+                                                complete(getString(R.string.save_error_conflict))
+                                            } catch (error: CancellationException) {
+                                                throw error
+                                            } catch (_: Exception) {
+                                                complete(getString(R.string.save_error_write))
+                                            }
                                         }
+                                    }
+                                    if (saveResult == null) {
+                                        complete(getString(R.string.save_error_write))
                                     }
                                 }
                             }
