@@ -142,9 +142,3 @@ El cumplimiento estricto de las reglas de aislamiento se comprueba mediante `Arc
 4. `data` no puede importar `application.*`, `ui.*` ni `app.*`.
 
 ---
-
-## Siguientes Pasos de Refinamiento Arquitectónico
-
-1. **Controlador de sesión**: Extraer el estado de sesión, borrado de secretos y bloqueo de `MainActivity` hacia un controlador de aplicación dedicado, manteniendo `FLAG_SECURE` en la frontera de Android.
-2. **Controlador de presentación**: Centralizar el estado de edición y reintentos de guardado de `VaultContentScreen` en un presenter/viewmodel liviano de UI.
-3. **Modularización Gradle (opcional)**: Evaluar la separación en módulos Gradle independientes (`:domain`, `:application`, `:data`, `:ui`, `:app`) para imponer las fronteras de dependencia a nivel de compilación.
