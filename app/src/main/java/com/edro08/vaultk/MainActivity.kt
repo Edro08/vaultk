@@ -81,6 +81,12 @@ import javax.crypto.Cipher
 class MainActivity : FragmentActivity() {
     private var sessionControllerRef: VaultSessionController? = null
 
+    override fun onDestroy() {
+        sessionControllerRef?.lock()
+        sessionControllerRef = null
+        super.onDestroy()
+    }
+
     override fun onUserInteraction() {
         super.onUserInteraction()
         sessionControllerRef?.idleTimer?.interact(SystemClock.elapsedRealtime())
@@ -93,6 +99,7 @@ class MainActivity : FragmentActivity() {
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
         setRecentsScreenshotEnabled(false)
+        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         setContent {
             val graph = remember { VaultkGraph(applicationContext) }
             val sessionController = graph.sessionController
@@ -281,13 +288,6 @@ class MainActivity : FragmentActivity() {
                 pendingRelinkUri = null
             }
             BackHandler(opened != null && !showSelector) { lockVault() }
-            if (opened != null) {
-                DisposableEffect(Unit) {
-                    val alreadySecure = window.attributes.flags and WindowManager.LayoutParams.FLAG_SECURE != 0
-                    window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
-                    onDispose { if (!alreadySecure) window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE) }
-                }
-            }
             val accessSettings = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
                 fullAccessGranted = localFiles.permitted()
                 val activate = activateFullAccessOnReturn

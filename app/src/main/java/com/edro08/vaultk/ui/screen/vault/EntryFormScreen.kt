@@ -89,6 +89,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.edro08.vaultk.R
@@ -297,6 +299,7 @@ fun EntryFormScreen(groupName: String, onSave: (EntryFormData) -> Unit, onBack: 
                         Icon(Icons.Default.Key, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     },
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false),
                     trailingIcon = {
                         IconButton(onClick = { passwordVisible = !passwordVisible }) {
                             Icon(if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
@@ -468,6 +471,7 @@ fun EntryFormScreen(groupName: String, onSave: (EntryFormData) -> Unit, onBack: 
                         Icon(Icons.Default.Timer, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     },
                     visualTransformation = if (otpVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false),
                     trailingIcon = {
                         IconButton(onClick = { otpVisible = !otpVisible }) {
                             Icon(if (otpVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
@@ -512,6 +516,7 @@ fun EntryFormScreen(groupName: String, onSave: (EntryFormData) -> Unit, onBack: 
                         Icon(Icons.Default.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     },
                     visualTransformation = if (pinVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false),
                     trailingIcon = {
                         IconButton(onClick = { pinVisible = !pinVisible }) {
                             Icon(if (pinVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
@@ -644,7 +649,8 @@ fun EntryFormScreen(groupName: String, onSave: (EntryFormData) -> Unit, onBack: 
                     label = { Text(stringResource(R.string.form_field_name)) }, modifier = Modifier.fillMaxWidth())
                 OutlinedTextField(customValue, { customValue = it },
                     label = { Text(stringResource(R.string.form_field_value)) }, modifier = Modifier.fillMaxWidth(),
-                    visualTransformation = if (customProtected) PasswordVisualTransformation() else VisualTransformation.None)
+                    visualTransformation = if (customProtected) PasswordVisualTransformation() else VisualTransformation.None,
+                    keyboardOptions = if (customProtected) KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false) else KeyboardOptions.Default)
                 Row(Modifier.fillMaxWidth().toggleable(value = customProtected,
                     role = Role.Checkbox, onValueChange = { customProtected = it }),
                     verticalAlignment = Alignment.CenterVertically) {

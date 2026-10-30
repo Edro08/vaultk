@@ -47,6 +47,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.edro08.vaultk.ui.theme.VaultkSpacing
@@ -119,6 +121,7 @@ fun PasswordField(
         label = { Text(label ?: stringResource(R.string.common_password)) },
         singleLine = true,
         visualTransformation = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, autoCorrectEnabled = false),
         trailingIcon = {
             IconButton(onClick = { visible = !visible }) {
                 Icon(
