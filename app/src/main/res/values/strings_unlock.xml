@@ -1,0 +1,27 @@
+<resources>
+    <string name="unlock_title">Desbloquear vault</string>
+    <string name="unlock_no_vault">No hay ningún vault seleccionado</string>
+    <string name="unlock_no_vault_description">Selecciona un archivo KDBX para comenzar.</string>
+    <string name="unlock_biometric_protected">La llave maestra está protegida por biometría en este dispositivo.</string>
+    <string name="unlock_master_key">Llave maestra</string>
+    <string name="unlock_master_key_hint">Introduce la llave maestra</string>
+    <string name="unlock_action">Desbloquear vault</string>
+    <string name="unlock_opening">Abriendo vault…</string>
+    <string name="unlock_elapsed_label">Tiempo transcurrido</string>
+    <string name="unlock_read_pending">La apertura de archivos KDBX estará disponible en la fase de lectura.</string>
+    <string name="unlock_fingerprint_title">Desbloqueo con huella</string>
+    <string name="unlock_fingerprint_ready">Usa la huella o introduce la llave maestra.</string>
+    <string name="unlock_fingerprint_pending">Podrás activar la biometría después de abrir tu vault.</string>
+    <string name="unlock_fingerprint_action">Desbloquear con huella</string>
+    <string name="unlock_biometric_prompt_title">Confirmar huella</string>
+    <string name="unlock_biometric_prompt_subtitle">Acceder a la llave maestra de %1$s</string>
+    <string name="unlock_biometric_unavailable">Configura una huella segura en el dispositivo para activar el desbloqueo biométrico.</string>
+    <string name="unlock_biometric_error">No se pudo usar la huella. Introduce la llave maestra.</string>
+    <string name="unlock_biometric_invalidated">La protección biométrica dejó de ser válida. Introduce la llave maestra para volver a activarla.</string>
+    <string name="unlock_change_vault">Cambiar vault</string>
+    <string name="unlock_last_opened">Última apertura: %1$s</string>
+    <string name="unlock_status">Estado: %1$s</string>
+    <string name="vault_origin_local">Dispositivo · Local</string>
+    <string name="vault_never_opened">Nunca</string>
+    <string name="vault_locked">Bloqueado</string>
+</resources>

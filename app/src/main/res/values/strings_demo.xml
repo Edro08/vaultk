@@ -1,0 +1,20 @@
+<resources>
+    <string name="demo_phase">Componentes · Fase 01</string>
+    <string name="demo_title">Diseño violeta</string>
+    <string name="demo_description">Base visual reutilizable de Vaultk</string>
+    <string name="demo_file">Ejemplo.kdbx</string>
+    <string name="demo_last_opened">Última apertura: hoy</string>
+    <string name="demo_entry">Entrada de ejemplo</string>
+    <string name="demo_username">usuario@ejemplo.com</string>
+    <string name="demo_general">General</string>
+    <string name="demo_general_description">Información básica</string>
+    <string name="demo_field_title">Título</string>
+    <string name="demo_field_hint">Mi cuenta</string>
+    <string name="demo_open_sheet">Abrir panel</string>
+    <string name="demo_empty_title">Sin entradas</string>
+    <string name="demo_empty_description">Aquí aparecerán las entradas de tu vault.</string>
+    <string name="demo_loading">Cargando vault…</string>
+    <string name="demo_sheet_title">Panel inferior</string>
+    <string name="demo_sheet_description">Componente reutilizable para seleccionar grupos y mostrar acciones.</string>
+    <string name="demo_today">Hoy</string>
+</resources>
