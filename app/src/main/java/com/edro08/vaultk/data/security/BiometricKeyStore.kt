@@ -5,6 +5,9 @@ import com.edro08.vaultk.domain.security.BiometricCredentials
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import java.nio.ByteBuffer
+import java.nio.CharBuffer
+import java.nio.charset.StandardCharsets
 import java.security.KeyStore
 import java.security.MessageDigest
 import javax.crypto.Cipher
@@ -45,7 +48,10 @@ class BiometricKeyStore(context: Context) : BiometricCredentials<Cipher> {
     }
 
     override fun store(reference: String, cipher: Cipher, password: CharArray) {
-        val plain = String(password).toByteArray(Charsets.UTF_8)
+        val byteBuffer = StandardCharsets.UTF_8.encode(CharBuffer.wrap(password))
+        val plain = ByteArray(byteBuffer.remaining())
+        byteBuffer.get(plain)
+        if (byteBuffer.hasArray()) byteBuffer.array().fill(0)
         try {
             val encrypted = cipher.doFinal(plain)
             try {
@@ -71,7 +77,13 @@ class BiometricKeyStore(context: Context) : BiometricCredentials<Cipher> {
         val encrypted = Base64.decode(value.substringAfter(':'), Base64.NO_WRAP)
         return try {
             val plain = cipher.doFinal(encrypted)
-            try { String(plain, Charsets.UTF_8).toCharArray() } finally { plain.fill(0) }
+            try {
+                val charBuffer = StandardCharsets.UTF_8.decode(ByteBuffer.wrap(plain))
+                val chars = CharArray(charBuffer.remaining())
+                charBuffer.get(chars)
+                if (charBuffer.hasArray()) charBuffer.array().fill('\u0000')
+                chars
+            } finally { plain.fill(0) }
         } finally { encrypted.fill(0) }
     }
 }

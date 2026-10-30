@@ -109,4 +109,15 @@ class SessionSecurityTest {
             assertTrue(cleared)
         }
     }
+    @Test fun clipboardSweepClearsRemainingClipAfterBackgroundExpiry() {
+        ActivityScenario.launch(MainActivity::class.java).use { scenario -> scenario.onActivity { context ->
+            val clipboard = context.getSystemService(ClipboardManager::class.java)
+            CredentialClipboard.copy(context, "test", "sweep-secret", clearAfterMillis = 5_000)
+            assertEquals("sweep-secret", clipboard.primaryClip?.getItemAt(0)?.text?.toString())
+            CredentialClipboard.clearOwned(context)
+            CredentialClipboard.sweep(context)
+            assertTrue(clipboard.primaryClip?.takeIf { it.itemCount > 0 }
+                ?.getItemAt(0)?.text?.toString() != "sweep-secret")
+        } }
+    }
 }

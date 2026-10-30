@@ -6,4 +6,5 @@ class CopyCredential(private val clipboard: CredentialClipboardPort) {
     operator fun invoke(label: String, value: String, sensitive: Boolean = true) =
         clipboard.copy(label, value, sensitive)
     fun clearOwned() = clipboard.clearOwned()
+    fun sweep() = clipboard.sweep()
 }
