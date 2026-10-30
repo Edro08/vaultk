@@ -42,10 +42,11 @@ object CredentialClipboard {
     private val handler = Handler(Looper.getMainLooper())
     private var pending: Runnable? = null
     private var currentToken: String? = null
+    private var lastClearedToken: String? = null
 
     fun copy(context: Context, label: String, value: String, sensitive: Boolean = true,
         clearAfterMillis: Long = SessionSecurity(context).clipboardSeconds * 1000L) {
-        val manager = context.getSystemService(ClipboardManager::class.java)
+        val manager = context.getSystemService(ClipboardManager::class.java) ?: return
         val token = UUID.randomUUID().toString()
         val clip = ClipData.newPlainText(label, value)
         clip.description.extras = PersistableBundle().apply {
@@ -55,6 +56,7 @@ object CredentialClipboard {
         manager.setPrimaryClip(clip)
         pending?.let(handler::removeCallbacks)
         currentToken = token
+        lastClearedToken = null
         pending = Runnable { clearOwned(context) }.also { handler.postDelayed(it, clearAfterMillis) }
     }
 
@@ -63,9 +65,30 @@ object CredentialClipboard {
         pending = null
         val token = currentToken ?: return
         currentToken = null
-        val manager = context.getSystemService(ClipboardManager::class.java)
+        val manager = context.getSystemService(ClipboardManager::class.java) ?: return
         try {
-            if (manager.primaryClip?.description?.extras?.getString(TOKEN) == token) manager.clearPrimaryClip()
-        } catch (_: SecurityException) { /* Clipboard access may be unavailable when the app is backgrounded. */ }
+            val clip = manager.primaryClip
+            if (clip != null) {
+                if (clip.description?.extras?.getString(TOKEN) == token) manager.clearPrimaryClip()
+            } else {
+                lastClearedToken = token
+                manager.clearPrimaryClip()
+            }
+        } catch (_: Exception) {
+            lastClearedToken = token
+            runCatching { manager.clearPrimaryClip() }
+        }
+    }
+
+    fun sweep(context: Context) {
+        val token = lastClearedToken ?: return
+        val manager = context.getSystemService(ClipboardManager::class.java) ?: return
+        try {
+            val clip = manager.primaryClip
+            if (clip?.description?.extras?.getString(TOKEN) == token) {
+                manager.clearPrimaryClip()
+            }
+            lastClearedToken = null
+        } catch (_: Exception) { }
     }
 }

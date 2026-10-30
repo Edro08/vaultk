@@ -170,6 +170,7 @@ class MainActivity : FragmentActivity() {
                 val observer = LifecycleEventObserver { _, event ->
                     if (event == Lifecycle.Event.ON_RESUME) {
                         fullAccessGranted = localFiles.permitted()
+                        graph.copyCredential.sweep()
                     }
                 }
                 lifecycle.addObserver(observer)

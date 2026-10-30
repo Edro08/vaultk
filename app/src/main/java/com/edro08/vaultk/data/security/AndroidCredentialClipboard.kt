@@ -7,4 +7,5 @@ class AndroidCredentialClipboard(private val context: Context) : CredentialClipb
     override fun copy(label: String, value: String, sensitive: Boolean) =
         CredentialClipboard.copy(context, label, value, sensitive)
     override fun clearOwned() = CredentialClipboard.clearOwned(context)
+    override fun sweep() = CredentialClipboard.sweep(context)
 }
