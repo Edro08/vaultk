@@ -65,7 +65,8 @@ com.edro08.vaultk/
 │   ├── security/                           # Casos de uso de seguridad
 │   │   ├── ManageBiometricUnlock.kt        # Desbloqueo rápido por biometría
 │   │   ├── CopyCredential.kt               # Copiado al portapapeles con temporizador de limpieza
-│   │   └── VaultIdleTimer.kt               # Temporizador de inactividad para bloqueo automático
+│   │   ├── VaultIdleTimer.kt               # Temporizador de inactividad para bloqueo automático
+│   │   └── VaultSessionController.kt       # Controlador de ciclo de vida de sesión y borrado de secretos
 │   └── settings/                           # Casos de uso de ajustes y configuración
 │       └── ManagePreferences.kt            # ManagePreferences y ManageSessionSecurity
 │

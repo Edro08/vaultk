@@ -161,7 +161,8 @@ fun VaultContentScreen(content: VaultContent, fallbackName: String, onClose: () 
     onRemoteDownloaded: () -> Unit = {},
     onViewStatus: (() -> Unit)? = null,
     onUnlink: (() -> Unit)? = null) {
-    var root by remember(content.root.id) { mutableStateOf(content.root) }
+    val state = rememberVaultContentState(content, copy)
+    var root by state::root
     val latestRoot by rememberUpdatedState(root)
     DisposableEffect(Unit) {
         onDispose {
@@ -173,40 +174,40 @@ fun VaultContentScreen(content: VaultContent, fallbackName: String, onClose: () 
         }
     }
     val groups = remember(root) { root.groupsAndSelf() }
-    var groupId by remember(content.root.id) { mutableStateOf(content.root.id) }
-    var searchQuery by remember(content.root.id) { mutableStateOf("") }
+    var groupId by state::groupId
+    var searchQuery by state::searchQuery
     val searchResults = remember(root, searchQuery, searchNotes, editVault) {
         editVault?.search(root, searchQuery, searchNotes) ?: root.searchEntries(searchQuery, searchNotes)
     }
-    var entry by remember(content.root.id) { mutableStateOf<VaultEntry?>(null) }
-    var formOpen by remember(content.root.id) { mutableStateOf(false) }
-    var generatedPassword by remember(content.root.id) { mutableStateOf<String?>(null) }
-    var editingEntry by remember(content.root.id) { mutableStateOf<VaultEntry?>(null) }
-    var hasEdits by remember(content.root.id) { mutableStateOf(false) }
-    var destination by remember(content.root.id) { mutableStateOf(VaultkDestination.Vault) }
-    var menuOpen by remember { mutableStateOf(false) }
-    var groupPickerOpen by remember { mutableStateOf(false) }
-    var movePickerOpen by remember { mutableStateOf(false) }
-    var deleteDialogOpen by remember { mutableStateOf(false) }
-    var discardDialogOpen by remember { mutableStateOf(false) }
-    var lockRequested by remember { mutableStateOf(false) }
-    var changeVaultRequested by remember { mutableStateOf(false) }
-    var accessRequested by remember { mutableStateOf(false) }
-    var manageAccessRequested by remember { mutableStateOf(false) }
-    var timeoutDialogOpen by remember { mutableStateOf(false) }
-    var biometricDialogOpen by remember { mutableStateOf(false) }
-    var biometricPassword by remember { mutableStateOf("") }
-    var configuringBiometric by remember { mutableStateOf(false) }
-    var saving by remember { mutableStateOf(false) }
-    var saveStartedAtMillis by remember { mutableLongStateOf(0L) }
-    var saveProgress by remember { mutableStateOf(VaultSaveProgress(VaultSaveStage.Preparing)) }
-    var saveError by remember { mutableStateOf<String?>(null) }
-    var syncing by remember { mutableStateOf(false) }
-    var syncMessage by remember { mutableStateOf<Int?>(null) }
-    var syncFailed by remember { mutableStateOf(false) }
-    var conflictDetected by remember(copy?.id) { mutableStateOf(copy?.state == CloudCopyState.Conflict) }
-    var statusDialog by remember { mutableStateOf(false) }
-    var unlinkDialog by remember { mutableStateOf(false) }
+    var entry by state::entry
+    var formOpen by state::formOpen
+    var generatedPassword by state::generatedPassword
+    var editingEntry by state::editingEntry
+    var hasEdits by state::hasEdits
+    var destination by state::destination
+    var menuOpen by state::menuOpen
+    var groupPickerOpen by state::groupPickerOpen
+    var movePickerOpen by state::movePickerOpen
+    var deleteDialogOpen by state::deleteDialogOpen
+    var discardDialogOpen by state::discardDialogOpen
+    var lockRequested by state::lockRequested
+    var changeVaultRequested by state::changeVaultRequested
+    var accessRequested by state::accessRequested
+    var manageAccessRequested by state::manageAccessRequested
+    var timeoutDialogOpen by state::timeoutDialogOpen
+    var biometricDialogOpen by state::biometricDialogOpen
+    var biometricPassword by state::biometricPassword
+    var configuringBiometric by state::configuringBiometric
+    var saving by state::saving
+    var saveStartedAtMillis by state::saveStartedAtMillis
+    var saveProgress by state::saveProgress
+    var saveError by state::saveError
+    var syncing by state::syncing
+    var syncMessage by state::syncMessage
+    var syncFailed by state::syncFailed
+    var conflictDetected by state::conflictDetected
+    var statusDialog by state::statusDialog
+    var unlinkDialog by state::unlinkDialog
 
     LaunchedEffect(syncMessage) {
         if (syncMessage != null) {
@@ -242,21 +243,7 @@ fun VaultContentScreen(content: VaultContent, fallbackName: String, onClose: () 
     val hasDraftEntries = !isCloudVault && groups.any { group -> group.entries.any { it.id.startsWith("draft:") } }
     val hasDrafts = !isCloudVault && (hasDraftGroups || hasDraftEntries || hasEdits)
     LaunchedEffect(content) {
-        if (root !== content.root) {
-            val previousGroup = groups.firstOrNull { it.id == groupId }
-            val savedGroups = content.root.groupsAndSelf()
-            val savedGroup = savedGroups.firstOrNull { it.id == groupId }
-                ?: savedGroups.firstOrNull { it.name == previousGroup?.name }
-                ?: content.root
-            val selectedEntry = entry
-            entry = selectedEntry?.let { selected ->
-                savedGroup.entries.firstOrNull { it.id == selected.id }
-                    ?: savedGroup.entries.firstOrNull { it.title == selected.title }
-            }
-            groupId = savedGroup.id
-            root = content.root
-            hasEdits = false
-        }
+        state.syncFromExternalContent(content)
     }
     val handleSyncResult: (Boolean, Boolean) -> (Result<CloudSyncOutcome>) -> Unit = { fromRefresh, manual ->
         { result ->
@@ -973,13 +960,11 @@ fun VaultContentScreen(content: VaultContent, fallbackName: String, onClose: () 
                         !root.isInside(target.id, content.recycleBinId))
             })
     }
-    if (deleteDialogOpen && entry != null && editable && editVault != null) AlertDialog(
-        onDismissRequest = { deleteDialogOpen = false },
-        title = { Text(stringResource(R.string.detail_delete_title)) },
-        text = { Text(stringResource(if (inRecycleBin || content.recycleBinId == null)
-            R.string.detail_delete_permanent_message else R.string.detail_delete_trash_message)) },
-        confirmButton = {
-            TextButton(onClick = {
+    if (deleteDialogOpen && entry != null && editable && editVault != null) {
+        DeleteEntryDialog(
+            inRecycleBin = inRecycleBin,
+            hasRecycleBin = content.recycleBinId != null,
+            onConfirm = {
                 val item = entry!!
                 val updated = editVault.delete(root, groupId, item.id, content.recycleBinId)
                 deleteDialogOpen = false
@@ -990,328 +975,63 @@ fun VaultContentScreen(content: VaultContent, fallbackName: String, onClose: () 
                     hasEdits = true
                     entry = null
                 }
-            }) { Text(stringResource(R.string.detail_delete_confirm)) }
-        },
-        dismissButton = {
-            TextButton(onClick = { deleteDialogOpen = false }) {
-                Text(stringResource(R.string.groups_cancel))
-            }
-        },
-    )
+            },
+            onDismiss = { deleteDialogOpen = false }
+        )
+    }
     if (discardDialogOpen) {
-        AlertDialog(
-            onDismissRequest = { discardDialogOpen = false },
-             title = { Text(stringResource(if (hasDraftEntries || hasEdits) R.string.content_discard_title else R.string.groups_discard_title)) },
-              text = { Text(stringResource(when {
-                   lockRequested -> R.string.content_lock_discard_message
-                   changeVaultRequested -> R.string.content_change_vault_discard_message
-                    accessRequested || manageAccessRequested -> R.string.settings_access_discard_message
-                  hasDraftEntries || hasEdits -> R.string.content_discard_message
-                  else -> R.string.groups_discard_message
-              })) },
-            confirmButton = {
-                 TextButton(onClick = {
-                     discardDialogOpen = false
-                      if (lockRequested) onLock()
-                      else if (changeVaultRequested) onChangeVault()
-                       else if (accessRequested) onFileAccessChange(FileAccessMode.Full)
-                       else if (manageAccessRequested) onManageFileAccess()
-                      else onClose()
-                 }) {
-                    Text(stringResource(R.string.groups_discard_confirm))
-                }
+        DiscardChangesDialog(
+            hasDraftEntries = hasDraftEntries,
+            hasEdits = hasEdits,
+            lockRequested = lockRequested,
+            changeVaultRequested = changeVaultRequested,
+            accessRequested = accessRequested,
+            manageAccessRequested = manageAccessRequested,
+            onConfirm = {
+                discardDialogOpen = false
+                if (lockRequested) onLock()
+                else if (changeVaultRequested) onChangeVault()
+                else if (accessRequested) onFileAccessChange(FileAccessMode.Full)
+                else if (manageAccessRequested) onManageFileAccess()
+                else onClose()
             },
-            dismissButton = {
-                  TextButton(onClick = {
-                      discardDialogOpen = false; lockRequested = false; changeVaultRequested = false
-                       accessRequested = false; manageAccessRequested = false
-                  }) {
-                    Text(stringResource(R.string.groups_discard_cancel))
-                }
-            },
+            onDismiss = {
+                state.resetDiscardFlags()
+            }
         )
     }
     if (saving && !isCloudVault) VaultSaveDialog(saveProgress, saveStartedAtMillis)
     if (statusDialog && isCloudVault) {
-        val statusRes = when {
-            copy == null && !editable -> R.string.cloud_read_only
-            copy != null && copy.bytes > 250_000_000L -> R.string.cloud_status_oversize
-            inConflict -> R.string.cloud_status_conflict
-            syncing -> R.string.cloud_status_syncing
-            copy?.state == CloudCopyState.Pending && copy.uploadAttempted -> R.string.cloud_status_pending_attempted
-            copy?.state == CloudCopyState.Pending -> R.string.cloud_status_pending
-            syncFailed && copy?.state == CloudCopyState.Clean -> R.string.cloud_status_error
-            editable -> R.string.cloud_status_clean
-            else -> R.string.cloud_read_only
-        }
-        val formatFileSize: (Long) -> String = { bytes ->
-            when {
-                bytes >= 1_048_576L -> String.format(Locale.getDefault(), "%.1f MB", bytes / 1_048_576f)
-                bytes >= 1_024L -> String.format(Locale.getDefault(), "%.1f KB", bytes / 1_024f)
-                else -> "$bytes B"
-            }
-        }
-        AlertDialog(
-            onDismissRequest = { statusDialog = false },
-            shape = RoundedCornerShape(28.dp),
-            title = {
-                Text(
-                    text = stringResource(R.string.cloud_status_dialog_title),
-                    style = MaterialTheme.typography.titleLarge
-                )
-            },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(VaultkSpacing.medium)
-                ) {
-                    // Estado 1: Dot + Origen
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(VaultkSpacing.small)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(10.dp)
-                                .background(
-                                    if (isWarningStatus) MaterialTheme.colorScheme.error else Color(0xFF44DB98),
-                                    CircleShape
-                                )
-                        )
-                        Text(
-                            text = stringResource(R.string.cloud_origin),
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                    }
-
-                    // Estado 2: Icono + Estado de sincronización
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(VaultkSpacing.small)
-                    ) {
-                        val statusIcon = when {
-                            inConflict || (syncFailed && copy?.state == CloudCopyState.Clean) -> Icons.Outlined.ErrorOutline
-                            copy?.state == CloudCopyState.Pending -> Icons.Outlined.CloudUpload
-                            copy == null && !editable -> Icons.Outlined.Info
-                            else -> Icons.Default.Check
-                        }
-                        val statusIconTint = when {
-                            inConflict || (syncFailed && copy?.state == CloudCopyState.Clean) -> MaterialTheme.colorScheme.error
-                            copy?.state == CloudCopyState.Pending -> MaterialTheme.colorScheme.primary
-                            else -> MaterialTheme.colorScheme.tertiary
-                        }
-                        Icon(
-                            imageVector = statusIcon,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp),
-                            tint = statusIconTint
-                        )
-                        Text(
-                            text = stringResource(statusRes),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (inConflict || copy?.state == CloudCopyState.Pending ||
-                                (syncFailed && copy?.state == CloudCopyState.Clean))
-                                MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    Spacer(Modifier.height(VaultkSpacing.tiny))
-
-                    // Detalles con iconos
-                    // 1. Origen
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(VaultkSpacing.medium)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.FolderOpen,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(22.dp)
-                        )
-                        Text(
-                            text = stringResource(R.string.cloud_status_detail_origin, stringResource(R.string.open_onedrive)),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-
-                    // 2. Archivo
-                    Row(
-                        verticalAlignment = Alignment.Top,
-                        horizontalArrangement = Arrangement.spacedBy(VaultkSpacing.medium)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Description,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(22.dp)
-                        )
-                        Column {
-                            Text(
-                                text = stringResource(R.string.cloud_status_detail_file_label),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = copy?.name ?: fallbackName,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-
-                    if (copy != null) {
-                        // 3. Tamaño
-                        Row(
-                            verticalAlignment = Alignment.Top,
-                            horizontalArrangement = Arrangement.spacedBy(VaultkSpacing.medium)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Inventory2,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Column {
-                                Text(
-                                    text = stringResource(R.string.cloud_status_detail_size_label, formatFileSize(copy.bytes)),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = stringResource(R.string.cloud_status_detail_size_bytes, copy.bytes),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-
-                        // 4. Última sinc.
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(VaultkSpacing.medium)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Schedule,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Text(
-                                text = stringResource(
-                                    R.string.cloud_status_detail_last_sync,
-                                    DateFormat.getDateTimeInstance().format(Date(copy.savedAt))
-                                ),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-
-                        // 5. ETag base
-                        Row(
-                            verticalAlignment = Alignment.Top,
-                            horizontalArrangement = Arrangement.spacedBy(VaultkSpacing.medium)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.VpnKey,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Column {
-                                Text(
-                                    text = stringResource(R.string.cloud_status_detail_etag_label),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
-                                Text(
-                                    text = copy.eTag,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = VaultkSpacing.small),
-                    horizontalArrangement = Arrangement.spacedBy(VaultkSpacing.medium)
-                ) {
-                    OutlinedButton(
-                        onClick = { statusDialog = false },
-                        modifier = Modifier.weight(1f).height(48.dp),
-                        shape = RoundedCornerShape(24.dp)
-                    ) {
-                        Text(stringResource(R.string.groups_cancel))
-                    }
-                    if (triggerCloudSyncAction != null && cloudSyncActionLabel != null) {
-                        Button(
-                            onClick = {
-                                statusDialog = false
-                                triggerCloudSyncAction()
-                            },
-                            enabled = !saving && !syncing,
-                            modifier = Modifier.weight(1f).height(48.dp),
-                            shape = RoundedCornerShape(24.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary
-                            )
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Sync,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(
-                                stringResource(cloudSyncActionLabel),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                }
-            },
-            dismissButton = null
+        CloudStatusDialog(
+            copy = copy,
+            fallbackName = fallbackName,
+            editable = editable,
+            inConflict = inConflict,
+            syncing = syncing,
+            syncFailed = syncFailed,
+            isWarningStatus = isWarningStatus,
+            cloudSyncActionLabel = cloudSyncActionLabel,
+            triggerCloudSyncAction = triggerCloudSyncAction,
+            saving = saving,
+            onDismiss = { statusDialog = false }
         )
     }
-    if (unlinkDialog && copy != null && onUnlink != null) AlertDialog(
-        onDismissRequest = { unlinkDialog = false },
-        title = { Text(stringResource(R.string.cloud_unlink_title)) },
-        text = { Text(stringResource(R.string.cloud_unlink_message, copy.name)) },
-        confirmButton = {
-            TextButton(onClick = { unlinkDialog = false; onUnlink() }) {
-                Text(stringResource(R.string.cloud_unlink_copy))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = { unlinkDialog = false }) {
-                Text(stringResource(R.string.groups_cancel))
-            }
-        }
-    )
+    if (unlinkDialog && copy != null && onUnlink != null) {
+        CloudUnlinkDialog(
+            copyName = copy.name,
+            onConfirm = { unlinkDialog = false; onUnlink() },
+            onDismiss = { unlinkDialog = false }
+        )
+    }
     if (timeoutDialogOpen) LockTimeoutDialog(timeoutSeconds, onTimeoutChange) {
         timeoutDialogOpen = false
     }
-    if (biometricDialogOpen) AlertDialog(
-        onDismissRequest = { if (!configuringBiometric) { biometricPassword = ""; biometricDialogOpen = false } },
-        title = { Text(stringResource(R.string.content_biometric_enable)) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(VaultkSpacing.medium)) {
-                Text(stringResource(R.string.content_biometric_description))
-                PasswordField(biometricPassword, { biometricPassword = it },
-                    label = stringResource(R.string.unlock_master_key_hint))
-                if (configuringBiometric) CircularProgressIndicator()
-            }
-        },
-        confirmButton = {
-            TextButton(enabled = biometricPassword.isNotEmpty() && !configuringBiometric,
-                modifier = Modifier.testTag("biometric-enable-confirm"), onClick = {
+    if (biometricDialogOpen) {
+        BiometricPasswordDialog(
+            password = biometricPassword,
+            onPasswordChange = { biometricPassword = it },
+            configuring = configuringBiometric,
+            onConfirm = {
                 val key = biometricPassword.toCharArray()
                 biometricPassword = ""
                 configuringBiometric = true
@@ -1320,149 +1040,12 @@ fun VaultContentScreen(content: VaultContent, fallbackName: String, onClose: () 
                     biometricDialogOpen = false
                     scope.launch { snackbar.showSnackbar(error ?: biometricSuccess) }
                 }
-            }) { Text(stringResource(R.string.content_biometric_enable)) }
-        },
-        dismissButton = {
-            TextButton(enabled = !configuringBiometric,
-                onClick = { biometricPassword = ""; biometricDialogOpen = false }) {
-                Text(stringResource(R.string.groups_cancel))
+            },
+            onDismiss = {
+                biometricPassword = ""
+                biometricDialogOpen = false
             }
-        },
-    )
-}
-
-@Composable
-private fun CloseMenu(
-    expanded: Boolean,
-    onExpandedChange: (Boolean) -> Unit,
-    onClose: () -> Unit,
-    onSave: (() -> Unit)?,
-    biometricEnabled: Boolean,
-    onEnableBiometric: (() -> Unit)?,
-    onDisableBiometric: (() -> Unit)?,
-    onLock: () -> Unit,
-    onChangeVault: (() -> Unit)? = null,
-    cloudSyncLabel: Int? = null,
-    onCloudSync: (() -> Unit)? = null,
-    onCloudViewStatus: (() -> Unit)? = null,
-    onCloudUnlink: (() -> Unit)? = null
-) {
-    Box {
-        IconButton(onClick = { onExpandedChange(true) }) {
-            Icon(Icons.Default.MoreVert, stringResource(R.string.content_more))
-        }
-        DropdownMenu(expanded = expanded, onDismissRequest = { onExpandedChange(false) }) {
-            // Sección 1: Vault
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.content_lock)) },
-                leadingIcon = {
-                    Icon(Icons.Outlined.Lock, contentDescription = null)
-                },
-                onClick = { onExpandedChange(false); onLock() }
-            )
-            if (onChangeVault != null) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.unlock_change_vault)) },
-                    leadingIcon = {
-                        Icon(Icons.Outlined.FolderOpen, contentDescription = null)
-                    },
-                    onClick = { onExpandedChange(false); onChangeVault() }
-                )
-            }
-            if (onSave != null) {
-                DropdownMenuItem(
-                    text = { Text(stringResource(R.string.content_save_action)) },
-                    leadingIcon = {
-                        Icon(Icons.Outlined.Save, contentDescription = null)
-                    },
-                    onClick = { onExpandedChange(false); onSave() }
-                )
-            }
-
-            // Sección 2: Temas online / OneDrive
-            val hasCloud = (cloudSyncLabel != null && onCloudSync != null) || onCloudViewStatus != null || onCloudUnlink != null
-            if (hasCloud) {
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 4.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                )
-                if (cloudSyncLabel != null && onCloudSync != null) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(cloudSyncLabel)) },
-                        leadingIcon = {
-                            Icon(Icons.Outlined.CloudSync, contentDescription = null)
-                        },
-                        onClick = { onExpandedChange(false); onCloudSync() }
-                    )
-                }
-                if (onCloudViewStatus != null) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.cloud_view_status)) },
-                        leadingIcon = {
-                            Icon(Icons.Outlined.Info, contentDescription = null)
-                        },
-                        onClick = { onExpandedChange(false); onCloudViewStatus() }
-                    )
-                }
-                if (onCloudUnlink != null) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.cloud_unlink_copy)) },
-                        leadingIcon = {
-                            Icon(Icons.Outlined.LinkOff, contentDescription = null)
-                        },
-                        onClick = { onExpandedChange(false); onCloudUnlink() }
-                    )
-                }
-            }
-
-            // Sección 3: Biometría
-            val hasBiometric = (biometricEnabled && onDisableBiometric != null) || (!biometricEnabled && onEnableBiometric != null)
-            if (hasBiometric) {
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 4.dp),
-                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                )
-                if (biometricEnabled && onDisableBiometric != null) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.content_biometric_disable)) },
-                        leadingIcon = {
-                            Icon(Icons.Outlined.Fingerprint, contentDescription = null)
-                        },
-                        onClick = { onExpandedChange(false); onDisableBiometric() }
-                    )
-                } else if (!biometricEnabled && onEnableBiometric != null) {
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.content_biometric_enable)) },
-                        leadingIcon = {
-                            Icon(Icons.Outlined.Fingerprint, contentDescription = null)
-                        },
-                        onClick = { onExpandedChange(false); onEnableBiometric() }
-                    )
-                }
-            }
-
-            // Sección 4: Cierre del vault
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = 4.dp),
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-            )
-            DropdownMenuItem(
-                text = {
-                    Text(
-                        stringResource(R.string.content_close),
-                        color = MaterialTheme.colorScheme.error
-                    )
-                },
-                leadingIcon = {
-                    Icon(
-                        Icons.AutoMirrored.Outlined.Logout,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.error
-                    )
-                },
-                onClick = { onExpandedChange(false); onClose() }
-            )
-        }
+        )
     }
 }
 
