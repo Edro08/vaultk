@@ -80,8 +80,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.edro08.vaultk.R
-import com.edro08.vaultk.domain.PasswordGenerator
-import com.edro08.vaultk.domain.PasswordOptions
+import com.edro08.vaultk.domain.security.PasswordGenerator
+import com.edro08.vaultk.domain.security.PasswordOptions
 import com.edro08.vaultk.ui.LocalCopyCredential
 import com.edro08.vaultk.ui.component.VaultkCard
 import com.edro08.vaultk.ui.component.VaultkIconTile

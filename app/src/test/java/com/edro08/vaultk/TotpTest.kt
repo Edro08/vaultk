@@ -1,6 +1,6 @@
 package com.edro08.vaultk
 
-import com.edro08.vaultk.domain.Totp
+import com.edro08.vaultk.domain.security.Totp
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue

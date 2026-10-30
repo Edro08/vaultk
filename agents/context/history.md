@@ -2,6 +2,21 @@
 
 Fases y cortes en orden cronológico descendente (el más reciente primero).
 
+## 2026-10-29 — Reestructuración simétrica de paquetes en Backend (domain, application, data)
+
+- **Subdivisión por responsabilidad de las capas de negocio e infraestructura ([arquitectura.md](file:///d:/Projects/Android/Vaultk/agents/specs/arquitectura.md))**:
+  - Se eliminó la estructura plana anterior de 47 archivos mezclados en `domain`, `application` y `data`, reorganizándolos en subpaquetes funcionales simétricos:
+    - **`domain`**: `domain.vault` (árbol, operaciones, repositorio, búsqueda, valor), `domain.cloud` (copias, sincronización, sesión Graph), `domain.security` (biometría, generador, TOTP, portapapeles) y `domain.settings` (preferencias, selección de bóvedas).
+    - **`application`**: `application.vault` (casos de uso de edición, guardado/apertura local, historial), `application.cloud` (gestión de cuentas, copias locales y sync OneDrive), `application.security` (desbloqueo biométrico, portapapeles, inactividad) y `application.settings` (gestión de preferencias y seguridad de sesión).
+    - **`data`**: `data.kdbx` (lector, escritor, transacción atómica, repositorio KDBX, memoria protegida), `data.cloud` (cliente Graph, subida, verificación, almacén privado), `data.security` (Keystore biométrico, memoria de sesión, portapapeles Android) y `data.settings` (SharedPreferences, sistema de archivos local, selección de bóveda).
+  - Se preservó el historial de git mediante `git mv` para todos los archivos afectados.
+  - Se actualizaron todos los imports en los 104 archivos Kotlin del proyecto sin usar comodines (`.*`).
+  - Se actualizó el documento de arquitectura `agents/specs/arquitectura.md` con el mapa completo de responsabilidades.
+- **Verificación**:
+  - `ArchitectureTest.kt` y todas las pruebas unitarias pasaron con éxito (`testDebugUnitTest`).
+  - Pruebas instrumentadas verificadas (`compileDebugAndroidTestKotlin`).
+  - APK debug compilada e instalada en el emulador (`Pixel_9_Pro(AVD) - 15`).
+
 ## 2026-10-29 — Estados cromáticos del icono de sincronización en la nube
 
 - **Colorización reactiva del icono de nube ([VaultContentScreen.kt](file:///d:/Projects/Android/Vaultk/app/src/main/java/com/edro08/vaultk/ui/screen/vault/VaultContentScreen.kt))**:

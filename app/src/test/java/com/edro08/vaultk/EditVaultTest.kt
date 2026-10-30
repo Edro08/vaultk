@@ -1,11 +1,11 @@
 package com.edro08.vaultk
 
-import com.edro08.vaultk.application.CustomFieldDraft
-import com.edro08.vaultk.application.EditVault
-import com.edro08.vaultk.application.EntryFormData
-import com.edro08.vaultk.data.KdbxVaultValueFactory
-import com.edro08.vaultk.domain.VaultEntry
-import com.edro08.vaultk.domain.VaultGroup
+import com.edro08.vaultk.application.vault.CustomFieldDraft
+import com.edro08.vaultk.application.vault.EditVault
+import com.edro08.vaultk.application.vault.EntryFormData
+import com.edro08.vaultk.data.kdbx.KdbxVaultValueFactory
+import com.edro08.vaultk.domain.vault.VaultEntry
+import com.edro08.vaultk.domain.vault.VaultGroup
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue

@@ -3,37 +3,51 @@ package com.edro08.vaultk.app
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.util.Log
-import com.edro08.vaultk.application.EditVault
-import com.edro08.vaultk.application.BrowseLocalVaults
-import com.edro08.vaultk.application.CopyCredential
-import com.edro08.vaultk.data.AndroidCredentialClipboard
-import com.edro08.vaultk.application.OpenLocalVault
-import com.edro08.vaultk.application.SaveLocalVault
-import com.edro08.vaultk.data.KdbxReader
-import com.edro08.vaultk.data.KdbxWriter
-import com.edro08.vaultk.data.KdbxVaultValueFactory
-import com.edro08.vaultk.data.LocalVaultFiles
-import com.edro08.vaultk.data.LocalKdbxVaultRepository
-import com.edro08.vaultk.data.LocalVaultTransaction
+import com.edro08.vaultk.application.vault.EditVault
+import com.edro08.vaultk.application.vault.BrowseLocalVaults
+import com.edro08.vaultk.application.security.CopyCredential
+import com.edro08.vaultk.data.security.AndroidCredentialClipboard
+import com.edro08.vaultk.application.vault.OpenLocalVault
+import com.edro08.vaultk.application.vault.SaveLocalVault
+import com.edro08.vaultk.data.kdbx.KdbxReader
+import com.edro08.vaultk.data.kdbx.KdbxWriter
+import com.edro08.vaultk.data.kdbx.KdbxVaultValueFactory
+import com.edro08.vaultk.data.settings.LocalVaultFiles
+import com.edro08.vaultk.data.kdbx.LocalKdbxVaultRepository
+import com.edro08.vaultk.data.kdbx.LocalVaultTransaction
 import java.io.FileNotFoundException
+import com.edro08.vaultk.application.cloud.ManageCloudAccount
+import com.edro08.vaultk.application.cloud.ManageCloudCopies
+import com.edro08.vaultk.application.cloud.SaveCloudCopyLocally
+import com.edro08.vaultk.application.cloud.SynchronizeCloudCopy
+import com.edro08.vaultk.application.security.ManageBiometricUnlock
+import com.edro08.vaultk.application.settings.ManagePreferences
+import com.edro08.vaultk.application.settings.ManageSessionSecurity
+import com.edro08.vaultk.application.vault.ManageRecentVaults
+import com.edro08.vaultk.data.cloud.MsalCloudAccountSession
+import com.edro08.vaultk.data.cloud.PrivateCloudCopyStore
+import com.edro08.vaultk.data.security.BiometricKeyStore
+import com.edro08.vaultk.data.security.SessionSecurity
+import com.edro08.vaultk.data.settings.AppSettings
+import com.edro08.vaultk.data.settings.VaultSelectionStore
 
 /** Android composition root: concrete adapters are known here, not by the use cases. */
 class VaultkGraph(context: Context) {
-    private val cloudCopyStore = com.edro08.vaultk.data.PrivateCloudCopyStore(
+    private val cloudCopyStore = PrivateCloudCopyStore(
         java.io.File(context.filesDir, "onedrive-copies"))
-    val cloudCopies = com.edro08.vaultk.application.ManageCloudCopies(
+    val cloudCopies = ManageCloudCopies(
         cloudCopyStore)
-    val saveCloudCopyLocally = com.edro08.vaultk.application.SaveCloudCopyLocally(cloudCopyStore)
-    private val msalCloudAccount = com.edro08.vaultk.data.MsalCloudAccountSession(context, cloudCopyStore)
-    val cloudAccount = com.edro08.vaultk.application.ManageCloudAccount(msalCloudAccount)
-    val synchronizeCloudCopy = com.edro08.vaultk.application.SynchronizeCloudCopy(msalCloudAccount)
-    val recentVaults = com.edro08.vaultk.application.ManageRecentVaults(
-        com.edro08.vaultk.data.VaultSelectionStore(context))
-    val biometricUnlock = com.edro08.vaultk.application.ManageBiometricUnlock(
-        com.edro08.vaultk.data.BiometricKeyStore(context))
+    val saveCloudCopyLocally = SaveCloudCopyLocally(cloudCopyStore)
+    private val msalCloudAccount = MsalCloudAccountSession(context, cloudCopyStore)
+    val cloudAccount = ManageCloudAccount(msalCloudAccount)
+    val synchronizeCloudCopy = SynchronizeCloudCopy(msalCloudAccount)
+    val recentVaults = ManageRecentVaults(
+        VaultSelectionStore(context))
+    val biometricUnlock = ManageBiometricUnlock(
+        BiometricKeyStore(context))
     private val localFiles = LocalVaultFiles()
-    val preferences = com.edro08.vaultk.application.ManagePreferences(com.edro08.vaultk.data.AppSettings(context))
-    val sessionSecurity = com.edro08.vaultk.application.ManageSessionSecurity(com.edro08.vaultk.data.SessionSecurity(context))
+    val preferences = ManagePreferences(AppSettings(context))
+    val sessionSecurity = ManageSessionSecurity(SessionSecurity(context))
     val browseLocalVaults = BrowseLocalVaults(localFiles)
     val copyCredential = CopyCredential(AndroidCredentialClipboard(context))
     val editVault = EditVault(KdbxVaultValueFactory())

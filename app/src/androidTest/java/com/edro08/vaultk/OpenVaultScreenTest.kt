@@ -8,9 +8,9 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.edro08.vaultk.domain.VaultDocument
+import com.edro08.vaultk.domain.settings.VaultDocument
 import com.edro08.vaultk.ui.uri
-import com.edro08.vaultk.domain.FileAccessMode
+import com.edro08.vaultk.domain.settings.FileAccessMode
 import com.edro08.vaultk.ui.screen.storage.OpenVaultScreen
 import com.edro08.vaultk.ui.theme.VaultkTheme
 import org.junit.Assert.assertEquals

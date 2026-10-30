@@ -1,7 +1,7 @@
 package com.edro08.vaultk
 
 import androidx.test.platform.app.InstrumentationRegistry
-import com.edro08.vaultk.data.MsalCloudAccountSession
+import com.edro08.vaultk.data.cloud.MsalCloudAccountSession
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import org.junit.Assert.assertTrue

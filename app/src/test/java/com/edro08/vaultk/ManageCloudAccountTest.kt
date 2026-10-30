@@ -1,10 +1,10 @@
 package com.edro08.vaultk
 
-import com.edro08.vaultk.application.ManageCloudAccount
-import com.edro08.vaultk.domain.CloudAccount
-import com.edro08.vaultk.domain.CloudAccountSession
-import com.edro08.vaultk.domain.CloudDriveItem
-import com.edro08.vaultk.domain.CloudDownload
+import com.edro08.vaultk.application.cloud.ManageCloudAccount
+import com.edro08.vaultk.domain.cloud.CloudAccount
+import com.edro08.vaultk.domain.cloud.CloudAccountSession
+import com.edro08.vaultk.domain.cloud.CloudDriveItem
+import com.edro08.vaultk.domain.cloud.CloudDownload
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

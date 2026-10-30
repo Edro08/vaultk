@@ -51,8 +51,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.edro08.vaultk.R
-import com.edro08.vaultk.domain.Appearance
-import com.edro08.vaultk.domain.SecurityOptions
+import com.edro08.vaultk.domain.settings.Appearance
+import com.edro08.vaultk.domain.settings.SecurityOptions
 import com.edro08.vaultk.ui.component.VaultkCard
 import com.edro08.vaultk.ui.theme.VaultkSpacing
 

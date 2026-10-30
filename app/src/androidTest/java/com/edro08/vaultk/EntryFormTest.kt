@@ -18,11 +18,11 @@ import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.semantics.SemanticsActions
-import com.edro08.vaultk.domain.VaultAttachment
-import com.edro08.vaultk.domain.VaultEntry
-import com.edro08.vaultk.application.EntryFormData
-import com.edro08.vaultk.application.CopyCredential
-import com.edro08.vaultk.data.AndroidCredentialClipboard
+import com.edro08.vaultk.domain.vault.VaultAttachment
+import com.edro08.vaultk.domain.vault.VaultEntry
+import com.edro08.vaultk.application.vault.EntryFormData
+import com.edro08.vaultk.application.security.CopyCredential
+import com.edro08.vaultk.data.security.AndroidCredentialClipboard
 import com.edro08.vaultk.ui.LocalCopyCredential
 import com.edro08.vaultk.ui.screen.vault.EntryDetailScreen
 import com.edro08.vaultk.ui.screen.vault.EntryFormScreen
@@ -30,8 +30,9 @@ import com.edro08.vaultk.ui.screen.generator.PasswordGeneratorScreen
 import com.edro08.vaultk.ui.theme.VaultkTheme
 import org.junit.Rule
 import org.junit.Test
-import com.edro08.vaultk.data.KdbxVaultValueFactory
+import com.edro08.vaultk.data.kdbx.KdbxVaultValueFactory
 import java.time.Instant
+import com.edro08.vaultk.application.vault.CustomFieldDraft
 
 class EntryFormTest {
     @get:Rule val compose = createComposeRule()
@@ -282,7 +283,7 @@ class EntryFormTest {
             check(saved?.tags == listOf("Nube"))
             check(saved?.expiresAt == expiry)
             check(saved?.pin == "1234")
-            check(saved?.fields?.single() == com.edro08.vaultk.application.CustomFieldDraft("Token", "otro secreto", true))
+            check(saved?.fields?.single() == com.edro08.vaultk.application.vault.CustomFieldDraft("Token", "otro secreto", true))
             check(saved?.attachments?.single()?.bytes?.contentEquals(byteArrayOf(1, 2)) == true)
         }
     }

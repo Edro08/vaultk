@@ -1,12 +1,12 @@
 package com.edro08.vaultk
 
-import com.edro08.vaultk.domain.VaultEntry
-import com.edro08.vaultk.domain.VaultGroup
-import com.edro08.vaultk.domain.searchEntries
+import com.edro08.vaultk.domain.vault.VaultEntry
+import com.edro08.vaultk.domain.vault.VaultGroup
+import com.edro08.vaultk.domain.vault.searchEntries
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import com.edro08.vaultk.data.KdbxVaultValueFactory
+import com.edro08.vaultk.data.kdbx.KdbxVaultValueFactory
 
 class VaultSearchTest {
     private val nested = VaultEntry("nested", "Correo", "ana", "https://mail.example.org",

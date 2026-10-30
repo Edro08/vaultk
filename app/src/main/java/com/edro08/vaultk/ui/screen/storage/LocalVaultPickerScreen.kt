@@ -33,9 +33,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import com.edro08.vaultk.R
-import com.edro08.vaultk.application.BrowseLocalVaults
-import com.edro08.vaultk.domain.LocalVaultItem
-import com.edro08.vaultk.domain.VaultId
+import com.edro08.vaultk.application.vault.BrowseLocalVaults
+import com.edro08.vaultk.domain.vault.LocalVaultItem
+import com.edro08.vaultk.domain.vault.VaultId
 import com.edro08.vaultk.ui.component.EmptyState
 import com.edro08.vaultk.ui.component.VaultkHeader
 import com.edro08.vaultk.ui.component.VaultkCard

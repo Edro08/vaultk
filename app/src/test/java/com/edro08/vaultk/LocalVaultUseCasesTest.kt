@@ -1,14 +1,14 @@
 package com.edro08.vaultk
 
-import com.edro08.vaultk.domain.VaultRepository
-import com.edro08.vaultk.domain.VaultId
-import com.edro08.vaultk.application.OpenLocalVault
-import com.edro08.vaultk.domain.OpenedVault
-import com.edro08.vaultk.application.SaveLocalVault
-import com.edro08.vaultk.domain.VaultSaveProgress
-import com.edro08.vaultk.domain.VaultSaveStage
-import com.edro08.vaultk.domain.VaultContent
-import com.edro08.vaultk.domain.VaultGroup
+import com.edro08.vaultk.domain.vault.VaultRepository
+import com.edro08.vaultk.domain.vault.VaultId
+import com.edro08.vaultk.application.vault.OpenLocalVault
+import com.edro08.vaultk.domain.vault.OpenedVault
+import com.edro08.vaultk.application.vault.SaveLocalVault
+import com.edro08.vaultk.domain.vault.VaultSaveProgress
+import com.edro08.vaultk.domain.vault.VaultSaveStage
+import com.edro08.vaultk.domain.vault.VaultContent
+import com.edro08.vaultk.domain.vault.VaultGroup
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame

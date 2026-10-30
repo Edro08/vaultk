@@ -5,9 +5,9 @@ import android.content.ContextWrapper
 import android.content.SharedPreferences
 import android.net.Uri
 import androidx.test.platform.app.InstrumentationRegistry
-import com.edro08.vaultk.domain.VaultDocument
-import com.edro08.vaultk.application.ManageRecentVaults
-import com.edro08.vaultk.data.VaultSelectionStore
+import com.edro08.vaultk.domain.settings.VaultDocument
+import com.edro08.vaultk.application.vault.ManageRecentVaults
+import com.edro08.vaultk.data.settings.VaultSelectionStore
 import java.util.UUID
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull

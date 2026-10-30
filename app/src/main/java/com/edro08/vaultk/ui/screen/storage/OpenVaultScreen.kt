@@ -51,9 +51,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.edro08.vaultk.R
-import com.edro08.vaultk.domain.CloudCopy
-import com.edro08.vaultk.domain.FileAccessMode
-import com.edro08.vaultk.domain.VaultDocument
+import com.edro08.vaultk.domain.cloud.CloudCopy
+import com.edro08.vaultk.domain.settings.FileAccessMode
+import com.edro08.vaultk.domain.settings.VaultDocument
 import com.edro08.vaultk.ui.component.EmptyState
 import com.edro08.vaultk.ui.component.VaultkBottomNavigation
 import com.edro08.vaultk.ui.component.VaultkCard

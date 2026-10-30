@@ -1,16 +1,16 @@
 package com.edro08.vaultk
 
 import androidx.test.platform.app.InstrumentationRegistry
-import com.edro08.vaultk.application.OpenLocalVault
-import com.edro08.vaultk.application.SaveLocalVault
-import com.edro08.vaultk.domain.VaultSaveStage
-import com.edro08.vaultk.domain.VaultId
-import com.edro08.vaultk.data.KdbxReader
-import com.edro08.vaultk.data.KdbxWriter
-import com.edro08.vaultk.data.LocalVaultFiles
-import com.edro08.vaultk.data.LocalKdbxVaultRepository
-import com.edro08.vaultk.data.LocalVaultTransaction
-import com.edro08.vaultk.domain.VaultConflictException
+import com.edro08.vaultk.application.vault.OpenLocalVault
+import com.edro08.vaultk.application.vault.SaveLocalVault
+import com.edro08.vaultk.domain.vault.VaultSaveStage
+import com.edro08.vaultk.domain.vault.VaultId
+import com.edro08.vaultk.data.kdbx.KdbxReader
+import com.edro08.vaultk.data.kdbx.KdbxWriter
+import com.edro08.vaultk.data.settings.LocalVaultFiles
+import com.edro08.vaultk.data.kdbx.LocalKdbxVaultRepository
+import com.edro08.vaultk.data.kdbx.LocalVaultTransaction
+import com.edro08.vaultk.domain.vault.VaultConflictException
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals

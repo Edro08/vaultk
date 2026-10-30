@@ -3,10 +3,10 @@ package com.edro08.vaultk
 import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import com.edro08.vaultk.data.KdbxReader
-import com.edro08.vaultk.data.KdbxWriter
-import com.edro08.vaultk.data.LocalVaultTransaction
-import com.edro08.vaultk.data.VaultKdbxHeader
+import com.edro08.vaultk.data.kdbx.KdbxReader
+import com.edro08.vaultk.data.kdbx.KdbxWriter
+import com.edro08.vaultk.data.kdbx.LocalVaultTransaction
+import com.edro08.vaultk.data.kdbx.VaultKdbxHeader
 import com.lambdapioneer.argon2kt.Argon2Kt
 import com.lambdapioneer.argon2kt.Argon2Mode
 import com.lambdapioneer.argon2kt.Argon2Version

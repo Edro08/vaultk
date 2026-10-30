@@ -10,8 +10,8 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import org.junit.Assert.assertTrue
-import com.edro08.vaultk.domain.VaultSaveProgress
-import com.edro08.vaultk.domain.VaultSaveStage
+import com.edro08.vaultk.domain.vault.VaultSaveProgress
+import com.edro08.vaultk.domain.vault.VaultSaveStage
 import com.edro08.vaultk.ui.screen.storage.VaultSaveDialog
 import com.edro08.vaultk.ui.theme.VaultkTheme
 import org.junit.Rule

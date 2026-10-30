@@ -92,9 +92,9 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.edro08.vaultk.R
-import com.edro08.vaultk.domain.Totp
-import com.edro08.vaultk.domain.VaultAttachment
-import com.edro08.vaultk.domain.VaultEntry
+import com.edro08.vaultk.domain.security.Totp
+import com.edro08.vaultk.domain.vault.VaultAttachment
+import com.edro08.vaultk.domain.vault.VaultEntry
 import com.edro08.vaultk.ui.component.VaultkCard
 import com.edro08.vaultk.ui.component.VaultkHeader
 import com.edro08.vaultk.ui.component.VaultkBottomNavigation
@@ -111,9 +111,9 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import java.util.UUID
 import java.util.Locale
-import com.edro08.vaultk.application.EntryFormData
-import com.edro08.vaultk.application.CustomFieldDraft
-import com.edro08.vaultk.domain.VaultValue
+import com.edro08.vaultk.application.vault.EntryFormData
+import com.edro08.vaultk.application.vault.CustomFieldDraft
+import com.edro08.vaultk.domain.vault.VaultValue
 import com.edro08.vaultk.ui.screen.generator.PasswordGeneratorScreen
 
 private fun VaultValue.asFormText(): String {

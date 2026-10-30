@@ -2,8 +2,8 @@ package com.edro08.vaultk
 
 import android.content.ClipboardManager
 import androidx.compose.runtime.CompositionLocalProvider
-import com.edro08.vaultk.application.CopyCredential
-import com.edro08.vaultk.data.AndroidCredentialClipboard
+import com.edro08.vaultk.application.security.CopyCredential
+import com.edro08.vaultk.data.security.AndroidCredentialClipboard
 import com.edro08.vaultk.ui.LocalCopyCredential
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.compose.ui.test.assertIsDisplayed
@@ -28,11 +28,11 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.edro08.vaultk.domain.Appearance
-import com.edro08.vaultk.domain.FileAccessMode
-import com.edro08.vaultk.domain.VaultContent
-import com.edro08.vaultk.domain.VaultEntry
-import com.edro08.vaultk.domain.VaultGroup
+import com.edro08.vaultk.domain.settings.Appearance
+import com.edro08.vaultk.domain.settings.FileAccessMode
+import com.edro08.vaultk.domain.vault.VaultContent
+import com.edro08.vaultk.domain.vault.VaultEntry
+import com.edro08.vaultk.domain.vault.VaultGroup
 import com.edro08.vaultk.ui.screen.vault.VaultContentScreen
 import com.edro08.vaultk.ui.screen.storage.UnlockVaultScreen
 import com.edro08.vaultk.ui.screen.storage.SelectedVault
@@ -40,8 +40,8 @@ import com.edro08.vaultk.ui.screen.settings.SettingsScreen
 import com.edro08.vaultk.ui.theme.VaultkTheme
 import org.junit.Rule
 import org.junit.Test
-import com.edro08.vaultk.data.KdbxVaultValueFactory
-import com.edro08.vaultk.application.EditVault
+import com.edro08.vaultk.data.kdbx.KdbxVaultValueFactory
+import com.edro08.vaultk.application.vault.EditVault
 import com.edro08.vaultk.ui.screen.settings.LockTimeoutDialog
 import java.time.Instant
 

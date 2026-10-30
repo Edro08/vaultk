@@ -69,13 +69,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.edro08.vaultk.R
-import com.edro08.vaultk.application.ManageCloudAccount
-import com.edro08.vaultk.application.ManageCloudCopies
-import com.edro08.vaultk.domain.CloudAccount
-import com.edro08.vaultk.domain.CloudCopy
-import com.edro08.vaultk.domain.CloudDownloadFailure
-import com.edro08.vaultk.domain.CloudDownloadIssue
-import com.edro08.vaultk.domain.CloudDriveItem
+import com.edro08.vaultk.application.cloud.ManageCloudAccount
+import com.edro08.vaultk.application.cloud.ManageCloudCopies
+import com.edro08.vaultk.domain.cloud.CloudAccount
+import com.edro08.vaultk.domain.cloud.CloudCopy
+import com.edro08.vaultk.domain.cloud.CloudDownloadFailure
+import com.edro08.vaultk.domain.cloud.CloudDownloadIssue
+import com.edro08.vaultk.domain.cloud.CloudDriveItem
 import com.edro08.vaultk.ui.component.VaultkBottomNavigation
 import com.edro08.vaultk.ui.component.VaultkCard
 import com.edro08.vaultk.ui.component.VaultkDestination
@@ -86,6 +86,7 @@ import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.edro08.vaultk.domain.cloud.CloudDownload
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

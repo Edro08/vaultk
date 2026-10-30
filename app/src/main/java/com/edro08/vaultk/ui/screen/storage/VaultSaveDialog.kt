@@ -27,8 +27,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.edro08.vaultk.R
-import com.edro08.vaultk.domain.VaultSaveProgress
-import com.edro08.vaultk.domain.VaultSaveStage
+import com.edro08.vaultk.domain.vault.VaultSaveProgress
+import com.edro08.vaultk.domain.vault.VaultSaveStage
 import com.edro08.vaultk.ui.component.VaultkCard
 import com.edro08.vaultk.ui.theme.VaultkSpacing
 import kotlinx.coroutines.delay

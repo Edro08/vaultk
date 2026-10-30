@@ -7,7 +7,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
-import com.edro08.vaultk.domain.VaultGroup
+import com.edro08.vaultk.domain.vault.VaultGroup
 import com.edro08.vaultk.ui.screen.vault.GroupPickerSheet
 import com.edro08.vaultk.ui.theme.VaultkTheme
 import org.junit.Assert.assertTrue

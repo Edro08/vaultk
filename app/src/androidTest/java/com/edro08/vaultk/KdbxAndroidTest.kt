@@ -2,10 +2,10 @@ package com.edro08.vaultk
 
 import android.net.Uri
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.edro08.vaultk.data.KdbxReader
-import com.edro08.vaultk.data.KdbxWriter
-import com.edro08.vaultk.domain.VaultAttachment
-import com.edro08.vaultk.domain.InvalidVaultKeyException
+import com.edro08.vaultk.data.kdbx.KdbxReader
+import com.edro08.vaultk.data.kdbx.KdbxWriter
+import com.edro08.vaultk.domain.vault.VaultAttachment
+import com.edro08.vaultk.domain.vault.InvalidVaultKeyException
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertThrows

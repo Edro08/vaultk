@@ -1,13 +1,13 @@
 package com.edro08.vaultk
 
-import com.edro08.vaultk.data.KdbxReader
-import com.edro08.vaultk.data.KdbxWriter
-import com.edro08.vaultk.domain.InvalidVaultKeyException
-import com.edro08.vaultk.domain.VaultEntry
-import com.edro08.vaultk.domain.VaultGroup
-import com.edro08.vaultk.domain.insertEntry
-import com.edro08.vaultk.domain.moveEntry
-import com.edro08.vaultk.domain.removeEntry
+import com.edro08.vaultk.data.kdbx.KdbxReader
+import com.edro08.vaultk.data.kdbx.KdbxWriter
+import com.edro08.vaultk.domain.vault.InvalidVaultKeyException
+import com.edro08.vaultk.domain.vault.VaultEntry
+import com.edro08.vaultk.domain.vault.VaultGroup
+import com.edro08.vaultk.domain.vault.insertEntry
+import com.edro08.vaultk.domain.vault.moveEntry
+import com.edro08.vaultk.domain.vault.removeEntry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertFalse
@@ -15,7 +15,7 @@ import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.linguafranca.pwdb.PropertyValue
-import com.edro08.vaultk.data.KdbxVaultValueFactory
+import com.edro08.vaultk.data.kdbx.KdbxVaultValueFactory
 import org.linguafranca.pwdb.format.KdbxCredentials
 import org.linguafranca.pwdb.format.KdbxHeader
 import org.linguafranca.pwdb.format.KdbxSerializer

@@ -1,12 +1,12 @@
 package com.edro08.vaultk
 
 import androidx.test.platform.app.InstrumentationRegistry
-import com.edro08.vaultk.data.GraphDriveBrowser
-import com.edro08.vaultk.data.PrivateCloudCopyStore
-import com.edro08.vaultk.domain.CloudCopy
-import com.edro08.vaultk.domain.CloudCopyId
-import com.edro08.vaultk.domain.CloudCopyState
-import com.edro08.vaultk.domain.CloudDriveItem
+import com.edro08.vaultk.data.cloud.GraphDriveBrowser
+import com.edro08.vaultk.data.cloud.PrivateCloudCopyStore
+import com.edro08.vaultk.domain.cloud.CloudCopy
+import com.edro08.vaultk.domain.cloud.CloudCopyId
+import com.edro08.vaultk.domain.cloud.CloudCopyState
+import com.edro08.vaultk.domain.cloud.CloudDriveItem
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.net.HttpURLConnection
@@ -19,6 +19,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.After
 import org.json.JSONObject
+import com.edro08.vaultk.domain.cloud.CloudDownloadFailure
+import com.edro08.vaultk.domain.cloud.CloudDownloadIssue
 
 class GraphDriveBrowserTest {
     private val context get() = InstrumentationRegistry.getInstrumentation().targetContext
@@ -154,10 +156,10 @@ class GraphDriveBrowserTest {
                     """{"id":"$id","name":"test.kdbx","size":12,"eTag":"v2","file":{}}""".toByteArray())
             }
         }
-        val failure = assertThrows(com.edro08.vaultk.domain.CloudDownloadFailure::class.java) {
+        val failure = assertThrows(com.edro08.vaultk.domain.cloud.CloudDownloadFailure::class.java) {
             browser.download("test-token", account, item) { _, _ -> }
         }
-        assertEquals(com.edro08.vaultk.domain.CloudDownloadIssue.Protected, failure.issue)
+        assertEquals(com.edro08.vaultk.domain.cloud.CloudDownloadIssue.Protected, failure.issue)
         assertEquals(CloudCopyState.Pending, copies.list().single().state)
         assertEquals("v1", copies.list().single().eTag)
     }

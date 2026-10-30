@@ -1,14 +1,14 @@
 package com.edro08.vaultk
 
 import androidx.test.platform.app.InstrumentationRegistry
-import com.edro08.vaultk.data.PrivateCloudCopyStore
-import com.edro08.vaultk.domain.CloudCopy
-import com.edro08.vaultk.domain.CloudCopyId
-import com.edro08.vaultk.domain.CloudCopyState
-import com.edro08.vaultk.domain.CloudCopyProtectedException
-import com.edro08.vaultk.application.ManageCloudCopies
-import com.edro08.vaultk.domain.InvalidVaultKeyException
-import com.edro08.vaultk.domain.VaultConflictException
+import com.edro08.vaultk.data.cloud.PrivateCloudCopyStore
+import com.edro08.vaultk.domain.cloud.CloudCopy
+import com.edro08.vaultk.domain.cloud.CloudCopyId
+import com.edro08.vaultk.domain.cloud.CloudCopyState
+import com.edro08.vaultk.domain.cloud.CloudCopyProtectedException
+import com.edro08.vaultk.application.cloud.ManageCloudCopies
+import com.edro08.vaultk.domain.vault.InvalidVaultKeyException
+import com.edro08.vaultk.domain.vault.VaultConflictException
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File

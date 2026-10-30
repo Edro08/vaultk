@@ -1,12 +1,12 @@
 package com.edro08.vaultk
 
-import com.edro08.vaultk.application.SynchronizeCloudCopy
-import com.edro08.vaultk.domain.CloudConflictResolution
-import com.edro08.vaultk.domain.CloudCopy
-import com.edro08.vaultk.domain.CloudCopyId
-import com.edro08.vaultk.domain.CloudCopyState
-import com.edro08.vaultk.domain.CloudCopySync
-import com.edro08.vaultk.domain.CloudSyncOutcome
+import com.edro08.vaultk.application.cloud.SynchronizeCloudCopy
+import com.edro08.vaultk.domain.cloud.CloudConflictResolution
+import com.edro08.vaultk.domain.cloud.CloudCopy
+import com.edro08.vaultk.domain.cloud.CloudCopyId
+import com.edro08.vaultk.domain.cloud.CloudCopyState
+import com.edro08.vaultk.domain.cloud.CloudCopySync
+import com.edro08.vaultk.domain.cloud.CloudSyncOutcome
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

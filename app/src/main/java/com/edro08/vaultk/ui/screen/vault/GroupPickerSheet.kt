@@ -51,8 +51,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.edro08.vaultk.R
-import com.edro08.vaultk.domain.VaultGroup
-import com.edro08.vaultk.domain.groupsAndSelf
+import com.edro08.vaultk.domain.vault.VaultGroup
+import com.edro08.vaultk.domain.vault.groupsAndSelf
 import com.edro08.vaultk.ui.component.EmptyState
 import com.edro08.vaultk.ui.component.VaultkBottomSheet
 import com.edro08.vaultk.ui.theme.VaultkSpacing

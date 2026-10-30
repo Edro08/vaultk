@@ -75,13 +75,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.edro08.vaultk.R
 import com.edro08.vaultk.ui.LocalCopyCredential
-import com.edro08.vaultk.domain.Totp
-import com.edro08.vaultk.domain.VaultEntry
+import com.edro08.vaultk.domain.security.Totp
+import com.edro08.vaultk.domain.vault.VaultEntry
 import com.edro08.vaultk.ui.component.VaultkCard
 import com.edro08.vaultk.ui.component.VaultkHeader
 import com.edro08.vaultk.ui.component.VaultkIconTile
 import com.edro08.vaultk.ui.theme.VaultkSpacing
-import com.edro08.vaultk.domain.VaultValue
+import com.edro08.vaultk.domain.vault.VaultValue
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.Instant

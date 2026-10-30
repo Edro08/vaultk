@@ -4,11 +4,11 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import androidx.test.core.app.ActivityScenario
 import androidx.test.platform.app.InstrumentationRegistry
-import com.edro08.vaultk.data.CredentialClipboard
-import com.edro08.vaultk.data.SessionSecurity
-import com.edro08.vaultk.application.VaultIdleTimer
-import com.edro08.vaultk.data.AppSettings
-import com.edro08.vaultk.domain.Appearance
+import com.edro08.vaultk.data.security.CredentialClipboard
+import com.edro08.vaultk.data.security.SessionSecurity
+import com.edro08.vaultk.application.security.VaultIdleTimer
+import com.edro08.vaultk.data.settings.AppSettings
+import com.edro08.vaultk.domain.settings.Appearance
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

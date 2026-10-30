@@ -1,7 +1,7 @@
 package com.edro08.vaultk
 
-import com.edro08.vaultk.domain.PasswordGenerator
-import com.edro08.vaultk.domain.PasswordOptions
+import com.edro08.vaultk.domain.security.PasswordGenerator
+import com.edro08.vaultk.domain.security.PasswordOptions
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

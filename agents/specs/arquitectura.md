@@ -1,181 +1,149 @@
 # Arquitectura de Vaultk
 
-Un solo módulo Android por ahora. `app` es el punto de entrada y composición;
-no es una cuarta capa de negocio ni contiene los casos de uso.
+Un solo módulo Android (`app`). Sigue los principios de **Clean Architecture** y arquitectura hexagonal con flujo unidireccional de dependencias hacia el núcleo. `app` actúa como composición e inyección manual de dependencias; no es una capa de negocio.
 
 ```text
-ui (Compose) → application (casos de uso) → domain (modelos, reglas y puertos)
-                         ↑                                  ↑
-                  app (composición)                data (implementa puertos)
+ui (Compose) ───► application (Casos de Uso) ───► domain (Modelos, Reglas y Puertos)
+                            ▲                                  ▲
+                            │                                  │
+                     app (VaultkGraph)              data (Implementación de Puertos)
 ```
 
-`application` coordina las acciones de usuario y llama reglas y puertos de
-`domain`; `data` implementa esos puertos. Ni `domain` ni `application` importan
-`data`, Android o KeePassJava2. Como en Structa, los contratos de persistencia
-pertenecen a `domain`, no a `application`.
-`app/VaultkGraph` es la raíz de composición; `MainActivity` conserva por ahora
-los contratos Android y la navegación. La presentación ya no referencia `data`;
-`ArchitectureTest` comprueba esa frontera y las dependencias del núcleo.
+- **`domain`**: Entidades inmutables, objetos de valor, reglas de negocio del árbol/búsqueda y contratos/puertos de persistencia e integración. Estrictamente independiente: sin dependencias de Android, AndroidX, Compose ni bibliotecas de terceros como KeePassJava2.
+- **`application`**: Casos de uso orquestadores que coordinan las acciones del usuario interactuando con los puertos y reglas del dominio. No contiene detalles de almacenamiento, vistas ni dependencias de Android.
+- **`data`**: Implementación de adaptadores y puertos del dominio: motor KDBX con KeePassJava2 y Argon2 nativo, transacción atómica de guardado, almacenamiento seguro de copias privadas en la nube, cliente Microsoft Graph, sesión MSAL, Keystore biométrico y preferencias.
+- **`app`**: Raíz de composición (`VaultkGraph`) y punto de entrada (`MainActivity`). Conecta las implementaciones de `data` con los casos de uso de `application` y los expone a la UI.
+- **`ui`**: Presentación declarativa en Jetpack Compose, navegación y diseño visual. No tiene acceso directo a `data`; consume casos de uso y modelos de dominio expuestos a través de `VaultkGraph`.
 
-- `domain`: entidades, valores, reglas de edición/búsqueda y puertos; sin
-  Android ni clases de KeePassJava2.
-- `application`: casos de uso que dependen de los puertos del dominio; no
-  contiene implementaciones de almacenamiento ni detalles KDBX.
-- `data`: KDBX, Argon2 nativo, archivos locales, transacción atómica,
-  preferencias, biometría y adaptadores de los puertos.
-- `app`/`ui`: configuración Android, permisos, navegación y presentación;
-   `MainActivity` consume casos de uso ensamblados por `VaultkGraph`.
+`ArchitectureTest.kt` valida automáticamente en compilación que las fronteras arquitectónicas se respeten sin dependencias prohibidas.
 
-## Corte implementado: vault local
+---
 
-`EditVault` recibe datos del formulario y ejecuta crear/editar, duplicar,
-mover, eliminar, crear grupos y buscar mediante operaciones del dominio. Las
-pantallas ya no construyen entradas ni modifican el árbol directamente.
-`OpenLocalVault` y `SaveLocalVault` usan `VaultRepository` de `domain`. El adaptador
-`LocalKdbxVaultRepository` encapsula la lectura, comparación de huellas,
-reescritura KDBX y `LocalVaultTransaction`. El caso de uso y la UI reciben
-`VaultSaveProgress` desde `domain`, sin importar clases de `data`. `VaultId` es
-un identificador opaco para el caso de uso; el adaptador local interpreta su
-valor como ruta. `VaultValue` representa los campos sin exponer `PropertyValue`;
-en `data`, `KdbxVaultValue` delega el cifrado de memoria a `SealedStore` para
-no inventar una nueva implementación criptográfica. Los adjuntos usan una
-referencia textual, interpretada como `Uri` solo en los bordes Android/KDBX.
-La contraseña y la huella
-se mantienen solo en la sesión; el adaptador no retiene copias. El guardado
-sigue usando temporal cifrado, apertura de verificación, respaldo y reemplazo
-atómico. No cambiar ese protocolo durante una migración de paquetes.
+## Organización de paquetes por responsabilidad
 
-## Ajustes, selector y portapapeles
+Tanto la interfaz como las capas del backend están organizadas simétricamente en subpaquetes según su área funcional:
 
-`ManagePreferences` y `ManageSessionSecurity` acceden a contratos de preferencias
-de `domain`; `AppSettings` y `SessionSecurity` los implementan en `data`.
-`VaultIdleTimer` vive en `application` y recibe tiempos monotónicos de Android.
-`BrowseLocalVaults` usa `LocalVaultBrowser` para navegar y comprobar acceso;
-`VaultkGraph` mantiene privado el adaptador `LocalVaultFiles`.
-`CopyCredential` usa el puerto de portapapeles del dominio y se inyecta en Compose.
-`VaultConflictException` pertenece al dominio para poder presentar el conflicto.
+```text
+com.edro08.vaultk/
+├── app/                                    # Raíz de composición Android
+│   └── VaultkGraph.kt                      # Grafo manual de dependencias y adaptadores
+│
+├── domain/                                 # Núcleo de negocio (sin dependencias Android)
+│   ├── vault/                              # Entidades, árbol, operaciones, búsqueda y puertos de vault
+│   │   ├── VaultContent.kt                 # VaultContent, VaultGroup, VaultEntry, VaultAttachment
+│   │   ├── VaultOperations.kt              # Operaciones inmutables sobre el árbol de grupos/entradas
+│   │   ├── VaultRepository.kt              # Puerto VaultRepository, VaultId, VaultSaveProgress
+│   │   ├── VaultSearch.kt                  # Búsqueda profunda en títulos, usuarios, URL y notas
+│   │   ├── VaultValue.kt                   # Puerto VaultValue y VaultValueFactory (memoria segura)
+│   │   ├── VaultConflictException.kt       # Excepción de colisión/modificación externa
+│   │   └── LocalVaultBrowser.kt            # Puerto para explorar archivos KDBX locales
+│   ├── cloud/                              # Modelos y contratos de sincronización en la nube (OneDrive)
+│   │   ├── CloudCopy.kt                    # CloudCopy, CloudCopyId, estados y registro de sync
+│   │   ├── CloudCopySync.kt                # Puerto CloudCopySync y resultados de sincronización
+│   │   └── CloudAccountSession.kt          # Puerto CloudAccountSession y contratos de descarga
+│   ├── security/                           # Seguridad, biometría, TOTP y contraseñas
+│   │   ├── BiometricCredentials.kt         # Puerto BiometricCredentials<C>
+│   │   ├── PasswordGenerator.kt            # Algoritmo de generación de contraseñas por entropía
+│   │   ├── Totp.kt                         # Generador de códigos TOTP según RFC 6238
+│   │   └── CredentialClipboardPort.kt      # Puerto de portapapeles seguro
+│   └── settings/                           # Preferencias del usuario y selección de vaults
+│       ├── VaultPreferences.kt             # Modelos Appearance, FileAccessMode, SecurityOptions
+│       ├── VaultSelection.kt               # Modelo VaultDocument y puerto VaultSelection
+│       └── PreferenceStores.kt             # Puertos AppPreferenceStore y SecurityPreferenceStore
+│
+├── application/                            # Casos de uso
+│   ├── vault/                              # Casos de uso sobre vaults locales
+│   │   ├── EditVault.kt                    # Edición, creación, duplicación, movimiento y borrado
+│   │   ├── LocalVaultUseCases.kt           # OpenLocalVault y SaveLocalVault
+│   │   ├── BrowseLocalVaults.kt            # Navegación del árbol de archivos locales
+│   │   └── ManageRecentVaults.kt           # Gestión del historial de vaults abiertos
+│   ├── cloud/                              # Casos de uso para OneDrive y copias cloud
+│   │   ├── ManageCloudAccount.kt           # Conexión/desconexión de cuenta Microsoft
+│   │   ├── ManageCloudCopies.kt            # Gestión de copias locales privadas de la nube
+│   │   ├── SaveCloudCopyLocally.kt         # Guardado de cambios locales en copia privada
+│   │   └── SynchronizeCloudCopy.kt         # Sincronización, subida y reconciliación con Graph
+│   ├── security/                           # Casos de uso de seguridad
+│   │   ├── ManageBiometricUnlock.kt        # Desbloqueo rápido por biometría
+│   │   ├── CopyCredential.kt               # Copiado al portapapeles con temporizador de limpieza
+│   │   └── VaultIdleTimer.kt               # Temporizador de inactividad para bloqueo automático
+│   └── settings/                           # Casos de uso de ajustes y configuración
+│       └── ManagePreferences.kt            # ManagePreferences y ManageSessionSecurity
+│
+├── data/                                   # Adaptadores e infraestructura
+│   ├── kdbx/                               # Motor de archivos KDBX (KeePassJava2)
+│   │   ├── KdbxReader.kt                   # Parser y descifrado de archivos .kdbx
+│   │   ├── KdbxWriter.kt                   # Serialización y cifrado KDBX
+│   │   ├── LocalKdbxVaultRepository.kt     # Adaptador de VaultRepository
+│   │   ├── LocalVaultTransaction.kt        # Transacción atómica (temporal, verify, reemplazo)
+│   │   ├── KdbxVaultValue.kt               # Implementación de memoria cifrada (SealedStore)
+│   │   └── VaultKdbxHeader.kt              # Inspección rápida de encabezados KDBX
+│   ├── cloud/                              # Adaptadores de OneDrive y Microsoft Graph
+│   │   ├── GraphDriveBrowser.kt            # Navegación y descarga segura de archivos
+│   │   ├── GraphDriveProbe.kt              # Sondeo de endpoints de Microsoft Graph
+│   │   ├── GraphSmallPendingUploader.kt    # Subida condicional If-Match (≤250MB)
+│   │   ├── GraphSmallUploadVerifier.kt     # Verificación doble de ETag y huella tras subida
+│   │   ├── MsalCloudAccountSession.kt      # Adaptador de autenticación MSAL y CloudCopySync
+│   │   └── PrivateCloudCopyStore.kt        # Almacén privado en filesDir/onedrive-copies
+│   ├── security/                           # Adaptadores de seguridad de plataforma
+│   │   ├── BiometricKeyStore.kt            # Keystore Android y cifrado de claves biométricas
+│   │   ├── SessionSecurity.kt              # Almacén de temporizadores de sesión y portapapeles
+│   │   └── AndroidCredentialClipboard.kt   # Implementación del portapapeles de Android
+│   └── settings/                           # Adaptadores de preferencias y selección
+│       ├── AppSettings.kt                  # Persistencia de ajustes (SharedPreferences)
+│       ├── LocalVaultFiles.kt              # Adaptador de navegación del sistema de archivos local
+│       └── VaultSelectionStore.kt          # Persistencia de lista de vaults recientes
+│
+└── ui/                                     # Capa de presentación (Jetpack Compose)
+    ├── component/                          # Tarjetas, controles y elementos reutilizables
+    ├── screen/
+    │   ├── generator/                      # Generador interactivo de contraseñas
+    │   ├── settings/                       # Pantalla de ajustes (tema, seguridad, acceso, nube)
+    │   ├── storage/                        # Apertura, desbloqueo, selector y gestión de copias
+    │   └── vault/                          # Contenido del vault, vista de entradas y formularios
+    └── theme/                              # Paletas oficiales Obsidian/Snow & Electric Indigo
+```
 
-`ManageBiometricUnlock` utiliza `domain.BiometricCredentials<C>`. El parámetro
-genérico mantiene la operación criptográfica opaca para el núcleo; el grafo
-conecta `BiometricKeyStore` con `Cipher`. La UI muestra el diálogo Android y
-llama al caso de uso con la operación autenticada, sin invocar el adaptador.
-Las referencias conservan la URI textual para mantener los alias existentes.
+---
 
-`ManageRecentVaults` accede a `VaultSelection` del dominio, implementado por
-`VaultSelectionStore`. `VaultDocument` contiene referencias textuales; la
-conversión a `Uri` ocurre en el borde Android. El formato persistido no cambia.
+## Subsistemas y Cortes Implementados
 
-## OneDrive 22.01 (identidad)
+### 1. Bóveda local KDBX (`vault` y `kdbx`)
+- **Edición desacoplada (`EditVault`)**: Gestiona la creación, edición, duplicación, movimiento y eliminación de entradas y grupos de forma inmutable sobre el árbol de `VaultGroup`.
+- **Transacción atómica de guardado (`LocalVaultTransaction`)**: Protocolo estricto contra corrupción:
+  1. Escritura en archivo temporal cifrado.
+  2. Apertura y verificación criptográfica íntegra del temporal antes de comprometerlo.
+  3. Respaldo previo y reemplazo atómico en disco.
+- **Protección de memoria (`KdbxVaultValue`)**: Los campos sensibles (`password`, `otp`, campos personalizados protegidos) delegan en `SealedStore` para mantener los caracteres cifrados en memoria volátil.
 
-`CloudAccountSession<H>` en `domain` recibe un host de autenticación opaco;
-`ManageCloudAccount` es el caso de uso y `MsalCloudAccountSession` el adaptador
-Android conectado en `VaultkGraph`. El núcleo solo recibe identidad de cuenta,
-no tokens ni tipos MSAL. `OneDriveAccountScreen` gestiona conexión/desconexión;
-no se ofrece aún exploración de archivos. El registro Android debug y permiso
-Graph delegado están configurados; falta probar autorización interactiva real.
-Android Backup se deshabilitó para evitar transferencia de caché de sesión y
-futuras copias KDBX privadas. Para publicar habrá que registrar el hash de la
-firma de producción y generar la configuración MSAL correspondiente.
+### 2. OneDrive y Sincronización en la Nube (`cloud`)
+- **Almacén privado aislado (`PrivateCloudCopyStore`)**: Las copias remotas se almacenan cifradas en `filesDir/onedrive-copies`, fuera del almacenamiento compartido, con metadatos atómicos en `record.json`.
+- **Identidad estable (`CloudCopyId`)**: Las copias se identifican por triplete inmutable `(accountId, driveId, itemId)`, permitiendo renombrar el archivo en la nube sin desvincularlo.
+- **Subida condicional y verificación doble (`GraphSmallPendingUploader` / `GraphSmallUploadVerifier`)**:
+  - Reclamo durable del intento de subida (`uploadAttempted`) antes de abrir la conexión de red.
+  - Envío condicional mediante `PUT /content` con cabecera `If-Match` para prevenir sobrescritura de cambios remotos concurrentes.
+  - Doble verificación de ETag, tamaño y huella digital del blob remoto antes de promover el estado a `Clean`.
+- **Resolución manual de conflictos**: Si se detecta un cambio remoto mientras hay cambios locales pendientes (`Conflict`), se descarga la versión remota a un blob de recuperación inmutable y se solicita al usuario elegir explícitamente entre «Conservar versión local» o «Usar versión de OneDrive».
+- **Vista unificada (`VaultContentScreen`)**: Pantalla única para bóvedas locales y en la nube con selector de grupos, búsqueda, indicadores reactivos de sincronización (violeta al sincronizar, verde al estar al día, rojo en error) y menú de acciones cloud («Sincronizar ahora», «Ver estado», «Desvincular»).
 
-## OneDrive 22.02–22.03c (descarga y lectura)
+### 3. Seguridad y Ajustes (`security` y `settings`)
+- **Biometría desacoplada (`ManageBiometricUnlock` / `BiometricKeyStore`)**: El núcleo maneja una operación opaca `BiometricCredentials<C>` sin acoplarse al `Cipher` ni a las APIs de Android Biometric.
+- **Portapapeles con autodestrucción (`CopyCredential` / `AndroidCredentialClipboard`)**: Limpia automáticamente el contenido sensible copiado tras el tiempo configurado (por defecto 30 segundos) o al bloquear la bóveda.
+- **Inactividad y bloqueo automático (`VaultIdleTimer`)**: Temporizador basado en tiempo monotónico para bloquear la sesión tras inactividad.
 
-`CloudCopyRepository` mantiene IDs de cuenta, unidad y elemento como identidad
-estable; `PrivateCloudCopyStore` guarda solo KDBX cifrado y metadatos atómicos en
-`filesDir/onedrive-copies`, fuera del almacenamiento compartido. `ManageCloudCopies`
-ofrece selección y apertura al nivel de aplicación. El lector KDBX recibe los
-bytes desde `data`, sin ruta local expuesta a presentación ni subida de la llave
-a Graph. `CloudVaultContentScreen` es una vista de solo lectura separada de
-`VaultContentScreen`: no comparte el callback de guardado local ni edición.
-La biometría usa cuenta/unidad/elemento, sin atarla al nombre ni al ETag.
-La gestión de copias se realiza a través de `ManageCloudCopies`: quitar la
-selección no borra el KDBX; eliminar requiere una copia limpia no seleccionada,
-confirmación y comprobaciones de integridad estructural en `data`, sin llamar
-a Graph. En 22.04a `SaveCloudCopyLocally` prepara y verifica otro KDBX cifrado,
-mantiene el ETag base y publica el puntero privado como `Pending` antes de
-cualquier posible subida. La UI aún no permite edición cloud; la integración
-de subida y su confirmación siguen pendientes en 22.04b–c.
+---
 
-En 22.04b `GraphSmallPendingUploader` vive solo en `data`: lee un snapshot
-`Pending` cifrado bajo exclusión del almacén, comprueba la cuenta y el tamaño,
-envía una única carga pequeña por ID con `If-Match` y devuelve un candidato
-`AwaitingVerification` sin marcar `Clean`. Ninguna pantalla ni el adaptador
-MSAL lo invocan todavía. Cargas por sesión permanecen bloqueadas; la
-confirmación y transición durable de estado pertenecen a 22.04c.
+## Verificación Arquitectónica
 
-En 22.04c el intento de subida se reclama duraderamente antes de abrir la
-conexión (`uploadAttempted` y `attemptedBlob`): no se repite a ciegas tras un
-corte, ni al guardar otra edición local sobre una copia cuyo envío ya se intentó.
-`GraphSmallUploadVerifier` confirma dos veces ID/ETag/tamaño/unidad alrededor de
-una lectura íntegra del ciphertext remoto; solo al coincidir la huella privada
-el almacén pasa atómicamente a `Clean` bajo CAS de ETag base y huella local.
-Para copias `Pending` con intento previo e incierto, `reconcile` usa únicamente
-`GET` para confirmar si la subida ya quedó publicada en OneDrive, rearmar el
-envío cuando dos lecturas confirman que el ETag base no cambió, o avanzar el
-ETag base al snapshot intentado verificado si hubo otra edición local posterior,
-conservando todos los blobs cifrados y manteniendo el bloqueo ante conflicto,
-elemento ausente o corte. MSAL implementa `CloudCopySync` (`synchronize` y
-`reconcile` y `refresh`) y `SynchronizeCloudCopy` lo expone a `application`.
-En 22.05 la sincronización bidireccional consulta el ETag remoto con `GET`:
-- Cuando la copia local está `Clean`, `refresh` comprueba el ETag al abrir, al
-  volver a la app y bajo petición manual («Sincronizar ahora»); si cambió en
-  OneDrive, descarga el nuevo `.kdbx` cifrado en staging privado, verifica dos
-  lecturas coherentes de metadatos y firma KDBX, y lo promueve atómicamente solo
-  si la copia sigue `Clean` en el ETag base esperado (`commitStagedRemoteClean`),
-  recargando la bóveda abierta en memoria y conservando el blob anterior.
-- Cuando la copia está `Pending`, nunca se descarga encima de la edición local:
-  `checkBeforeUpload` y `refresh` consultan el ETag remoto antes de reclamar o
-  enviar `PUT /content`, evitando bloquear `uploadAttempted` si no hay red y
-  detectando conflictos antes de subir. Al guardar un cambio local, la UI dispara
-  la sincronización automática mostrando los estados sincronizado, pendiente,
-  sincronizando, error y conflicto.
-`CloudCopiesScreen` y `CloudVaultContentScreen` muestran el estado explícito de
-la copia y ofrecen «Sincronizar ahora» (`refresh` en `Clean`), «Subir cambios
-pendientes» (`synchronize` en `Pending` sin intento) o «Reconciliar con OneDrive»
-(`reconcile` en `Pending` con intento). `CloudVaultContentScreen` habilita crear,
-editar, duplicar y eliminar entradas solo para copias elegibles por la ruta
-pequeña (≤250.000.000 bytes, sin conflicto), guardando siempre en
-`PrivateCloudCopyStore` mediante `SaveCloudCopyLocally` y sin compartir la ruta
-local del dispositivo. Las sesiones de carga siguen deshabilitadas.
+El cumplimiento estricto de las reglas de aislamiento se comprueba mediante `ArchitectureTest.kt`:
+1. `ui` y `MainActivity` no pueden importar clases de `data.*`.
+2. `domain` no puede importar `android.*`, `androidx.*`, `org.linguafranca.*`, `data.*`, `application.*`, `ui.*` ni `app.*`.
+3. `application` no puede importar `android.*`, `androidx.*`, `org.linguafranca.*`, `data.*`, `ui.*` ni `app.*`.
+4. `data` no puede importar `application.*`, `ui.*` ni `app.*`.
 
-En 22.06, cuando se detecta un conflicto entre una edición local `Pending` y un
-cambio remoto en OneDrive, `GraphSmallUploadVerifier.prepareConflict` descarga y
-verifica el `.kdbx` remoto en un blob cifrado inmutable adicional sin reemplazar
-el `.kdbx` local, y `PrivateCloudCopyStore.recordConflict` registra ambos en
-`record.json` (`CloudCopyConflict`). El usuario debe elegir explícitamente (sin
-fusión automática) entre «Conservar versión local» (`resolveConflictKeepLocal`,
-que conserva el blob remoto como copia de recuperación cifrada, avanza el ETag
-base al ETag remoto inspeccionado y sube el `.kdbx` local) o «Usar versión de
-OneDrive» (`resolveConflictUseRemote`, que conserva el blob local como copia de
-recuperación cifrada y activa el blob remoto verificado). Todas las transiciones
-registran entradas en `sync-log.json` (`CloudSyncLogEntry`) sin secretos, tokens,
-títulos ni rutas locales.
+---
 
-En 22.07–22.08, `PreferenceStore`, `AppSettings` y `ManagePreferences` exponen
-`cloudAutoSync` y `cloudAllowMetered`, controlables desde `SettingsScreen` sin
-sustituir las pantallas existentes. `VaultContentScreen` es la vista única tanto
-para vaults locales como para copias privadas de OneDrive (`CloudVaultContentScreen`
-delega en ella), manteniendo el mismo encabezado, menú `⋮`, buscador,
-`GroupPickerSheet` y listado de entradas, e incorporando en modo OneDrive el
-origen, el estado y la fecha de última sincronización, indicadores de progreso de
-transferencia, las acciones «Sincronizar ahora», «Ver estado» y «Desvincular»
-(tanto en la tarjeta de estado como en el menú `⋮`), y la pausa automática en
-redes medidas (`ConnectivityManager`). `OpenVaultScreen` ofrece acceso directo a
-«Copias descargadas» aunque la cuenta esté desconectada, y `CloudCopiesScreen`
-distingue explícitamente quitar la referencia activa, eliminar la copia privada
-del dispositivo y nunca borrar el archivo remoto en OneDrive. La suite
-instrumentada verifica cortes de transferencia, ediciones concurrentes, tokens
-caducados, permisos revocados, archivos eliminados, integridad KDBX tras descarga
-y ausencia de secretos en registros.
+## Siguientes Pasos de Refinamiento Arquitectónico
 
-## Siguientes cortes, separados y con pruebas
-
-1. Extraer el estado de sesión, borrado de secretos y bloqueo de `MainActivity`
-   a un controlador de aplicación; mantener `FLAG_SECURE` en la capa Android.
-2. Mover el estado de edición, el reintento de guardado y los errores de
-   `VaultContentScreen`/`MainActivity` a un controlador de presentación que
-   llame casos de uso, sin alterar la semántica de cambios pendientes.
-3. Evaluar módulos Gradle para imponer las dependencias
-   en compilación; el módulo Android único no lo impide todavía.
-
-En cada paso comprobar abrir, editar, guardar, reabrir, conflicto y fallos de
-escritura; no medir rendimiento sobre el KDBX del usuario sin su intervención.
+1. **Controlador de sesión**: Extraer el estado de sesión, borrado de secretos y bloqueo de `MainActivity` hacia un controlador de aplicación dedicado, manteniendo `FLAG_SECURE` en la frontera de Android.
+2. **Controlador de presentación**: Centralizar el estado de edición y reintentos de guardado de `VaultContentScreen` en un presenter/viewmodel liviano de UI.
+3. **Modularización Gradle (opcional)**: Evaluar la separación en módulos Gradle independientes (`:domain`, `:application`, `:data`, `:ui`, `:app`) para imponer las fronteras de dependencia a nivel de compilación.
