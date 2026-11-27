@@ -49,6 +49,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.SliderState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -198,11 +199,24 @@ fun PasswordGeneratorScreen(modifier: Modifier = Modifier, onUse: ((String) -> U
                 }
 
                 // Slider con puntos exactamente sobre cada tick y burbuja flotante en el thumb
+                val currentSliderPos = sliderPosition((length ?: PasswordGenerator.MIN_LENGTH)
+                    .coerceIn(PasswordGenerator.MIN_LENGTH, PasswordGenerator.MAX_LENGTH))
+                val sliderState = remember(lengthMarks.lastIndex) {
+                    SliderState(
+                        value = currentSliderPos,
+                        trackRange = 0f..lengthMarks.lastIndex.toFloat()
+                    )
+                }
+                LaunchedEffect(currentSliderPos, isSliding) {
+                    if (!isSliding && sliderState.value != currentSliderPos) {
+                        sliderState.value = currentSliderPos
+                    }
+                }
                 Slider(
-                    value = sliderPosition((length ?: PasswordGenerator.MIN_LENGTH)
-                        .coerceIn(PasswordGenerator.MIN_LENGTH, PasswordGenerator.MAX_LENGTH)),
+                    state = sliderState,
                     onValueChange = {
                         isSliding = true
+                        sliderState.value = it
                         val newLen = sliderLength(it)
                         lengthText = newLen.toString()
                         if (generated != null && valid) {
@@ -210,7 +224,6 @@ fun PasswordGeneratorScreen(modifier: Modifier = Modifier, onUse: ((String) -> U
                         }
                     },
                     onValueChangeFinished = { isSliding = false },
-                    valueRange = 0f..lengthMarks.lastIndex.toFloat(),
                     thumb = {
                         Box(
                             modifier = Modifier.size(20.dp),
