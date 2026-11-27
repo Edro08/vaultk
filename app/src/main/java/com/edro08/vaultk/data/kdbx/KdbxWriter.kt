@@ -12,7 +12,6 @@ import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.nio.CharBuffer
 import java.nio.charset.StandardCharsets
-import java.util.Date
 import com.edro08.vaultk.domain.vault.removeEntry
 
 /** Produces a complete encrypted replacement; the caller commits it through LocalVaultTransaction. */
@@ -121,7 +120,7 @@ class KdbxWriter(private val reader: KdbxReader = KdbxReader()) {
             .forEach { dest.removeProperty(it) }
         source.customFields.forEach { (name, value) -> put(name, value) }
         dest.setExpires(source.expiresAt != null)
-        source.expiresAt?.let { dest.expiryTime = Date.from(it) }
+        source.expiresAt?.let { dest.expiryTime = it }
         // KeePassJava2 parses <Tags> but does not provide a setter.
         dest.javaClass.getDeclaredField("tags").apply { isAccessible = true }
             .set(dest, source.tags.joinToString(";"))

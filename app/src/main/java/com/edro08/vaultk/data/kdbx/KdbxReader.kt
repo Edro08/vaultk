@@ -65,12 +65,12 @@ class KdbxReader {
                 username = entry.username.orEmpty(),
                 url = entry.url.orEmpty(),
                 notes = entry.notes.orEmpty(),
-                modified = entry.lastModificationTime?.toInstant(),
+                modified = entry.lastModificationTime,
                 password = entry.protectedValue(Entry.STANDARD_PROPERTY_NAME_PASSWORD),
                 otp = entry.protectedValue("otp"),
                 tags = entry.kdbxTags(),
-                created = entry.creationTime?.toInstant(),
-                expiresAt = if (entry.expires) entry.expiryTime?.toInstant() else null,
+                created = entry.creationTime,
+                expiresAt = if (entry.expires) entry.expiryTime else null,
                 customFields = entry.propertyNames.filterNot { name ->
                     name in setOf("Title", "UserName", "Password", "URL", "Notes", "otp", "Tags")
                 }.associateWith { name ->
